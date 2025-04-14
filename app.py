@@ -16,7 +16,7 @@ def main():
             inital_actions = [
         {'open_tab':{'url': 'https://compendium.ch/'}}]
             llm = ChatOpenAI(model="gpt-4o", 
-                             openai_api_key=st.secrets["openai"],)
+                             openai_api_key=st.secrets["openai"]["open_ai_key"],)
             
             agent = Agent(
                 task=task,
