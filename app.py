@@ -2,8 +2,7 @@ import streamlit as st
 import asyncio
 from dotenv import load_dotenv
 import os
-os.system('playwright install')
-os.system('playwright install-deps')
+os.system('playwright install --force')
 load_dotenv()
 
 from langchain_openai import ChatOpenAI
