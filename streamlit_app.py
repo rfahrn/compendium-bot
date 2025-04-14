@@ -1,5 +1,7 @@
 import streamlit as st
 from history_questions import HistoryQuestions
+import subprocess
+
 
 st.set_page_config(page_title="💊 Compendium Bot", layout="centered")
 st.title("💊 Compendium Bot")
@@ -39,3 +41,17 @@ if show_history:
 if st.button("Clear history of questions asked"):
     history_service.clear_history()
     st.success("History cleared.")
+
+# Button to trigger the browser_use.py script
+if st.button("Run Browser Agent"):
+    if "question" in st.session_state and st.session_state.question:
+        # Pass the question to the browser_use.py script
+        result = subprocess.run(
+            ["python", "browser_use.py", st.session_state.question],
+            capture_output=True,
+            text=True
+        )
+        st.write("Browser Agent Output:")
+        st.code(result.stdout)
+    else:
+        st.warning("No question available to pass to the browser agent.")

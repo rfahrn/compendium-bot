@@ -2,6 +2,7 @@ from langchain_openai import ChatOpenAI
 from browser_use import Agent
 import asyncio
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
@@ -29,4 +30,9 @@ async def main():
     )
     await agent.run()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        task = sys.argv[1]
+        asyncio.run(main(task))
+    else:
+        print("No task provided.")
