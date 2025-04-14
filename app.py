@@ -13,9 +13,13 @@ def main():
     user_task = st.text_input("Enter your Agent Task", value="Compare the price of gpt-4o and DeepSeek-V3")
     if st.button("Run Agent"):
         async def run_agent(task):
+            import os, streamlit as st
+            os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+            print("OPENAI_API_KEY", os.environ["OPENAI_API_KEY"])
             inital_actions = [
         {'open_tab':{'url': 'https://compendium.ch/'}}]
-            llm = ChatOpenAI(model="gpt-4o", temperature=0.0)
+            llm = ChatOpenAI(model="gpt-4o", temperature=0.0,openai_api_key=st.secrets["OPENAI_API_KEY"])
+            
             agent = Agent(
                 task=task,
                 initial_actions=inital_actions,
