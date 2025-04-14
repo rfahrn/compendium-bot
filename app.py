@@ -8,6 +8,7 @@ from browser_use import Agent
 
 def main():
     st.title("Browser Use + Streamlit Demo")
+    st.write("OpenAI key from secrets:", st.secrets["OPENAI_API_KEY"])
     if "agent_result" not in st.session_state:
         st.session_state["agent_result"] = None
     user_task = st.text_input("Enter your Agent Task", value="Compare the price of gpt-4o and DeepSeek-V3")
@@ -18,7 +19,8 @@ def main():
             print("OPENAI_API_KEY", os.environ["OPENAI_API_KEY"])
             inital_actions = [
         {'open_tab':{'url': 'https://compendium.ch/'}}]
-            llm = ChatOpenAI(model="gpt-4o", temperature=0.0,openai_api_key=st.secrets["OPENAI_API_KEY"])
+            llm = ChatOpenAI(model="gpt-4o", 
+                             openai_api_key=st.secrets["OPENAI_API_KEY"],)
             
             agent = Agent(
                 task=task,
