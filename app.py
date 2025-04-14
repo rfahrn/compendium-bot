@@ -8,7 +8,6 @@ from browser_use import Agent
 
 def main():
     st.title("Browser Use + Streamlit Demo")
-    st.write("OpenAI key from secrets:", st.secrets["OPENAI_API_KEY"])
     if "agent_result" not in st.session_state:
         st.session_state["agent_result"] = None
     user_task = st.text_input("Enter your Agent Task", value="Compare the price of gpt-4o and DeepSeek-V3")
