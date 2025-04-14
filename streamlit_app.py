@@ -4,6 +4,7 @@ import history_questions
 
 
 st.set_page_config(page_title="💊 Compendium Bot", layout="centered")
+st.title("💊 Compendium Bot")
 st.write("This is a simple Streamlit app that demonstrates the use of a slider and a button.")
 
 question = st.text_input("Was möchtest du wissen?", placeholder="z. B. Wirkung von Dafalgan, Dosierung etc.")
