@@ -1,7 +1,7 @@
 import streamlit as st
 from history_questions import HistoryQuestions
 import subprocess
-st.secrets["OPENAI_API_KEY"]
+st.secrets["openai"]
 st.set_page_config(page_title="💊 Compendium Bot", layout="centered")
 st.title("💊 Compendium Bot")
 
