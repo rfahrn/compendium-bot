@@ -1,5 +1,4 @@
 .env
-secrets.toml
 streamlit_app.py
 browser_use.py
 history_questions.py
