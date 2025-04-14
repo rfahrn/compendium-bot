@@ -20,6 +20,9 @@ question = st.text_input(
 if question:
     history_service.add_question(question)
     st.write(f"Du hast gefragt: *{question}*")
+    # save question 
+    st.session_state.question = question
+    
 
 # Checkbox to show the history
 show_history = st.checkbox("Show history of questions asked", value=False)
