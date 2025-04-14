@@ -1,5 +1,6 @@
 import streamlit as st
 import history_questions
+from history_questions import HistoryQuestions
 
 
 st.set_page_config(page_title="💊 Compendium Bot", layout="centered")
