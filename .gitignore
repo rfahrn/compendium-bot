@@ -1,4 +1,3 @@
-.env
 streamlit_app.py
 hello.py
 history_questions.py
