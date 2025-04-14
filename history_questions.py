@@ -1,117 +1,47 @@
-def add_question(question):
-    """
-    Adds a question to the history list.
-    """
-    with open("history.txt", "a") as f:
-        f.write(question + "\n")
-
-
-def get_history():
-    """
-    Retrieves the history of questions asked.
-    """
-    try:
-        with open("history.txt", "r") as f:
-            history = f.readlines()
-        # Remove newline characters and return a list of questions
-        return [q.strip() for q in history]
-    except FileNotFoundError:
-        # If the file does not exist, return an empty list
-        return []
+import os
 
 class HistoryQuestions:
     def __init__(self, history_file="history.txt"):
-        """
-        Initialize the HistoryQuestions class.
-        
-        Args:
-            history_file (str): Path to the history file.
-        """
-        self.history = []
         self.history_file = history_file
+        self.history = []
         self.load_history()
 
-    def add_question(self, question):
-        """
-        Adds a question to the history list and saves it.
-        """
-        if question and question.strip():
-            question = question.strip()
+    def add_question(self, question: str):
+        """Add a non-empty question to both the in-memory list and file."""
+        question = question.strip()
+        if question:
             self.history.append(question)
-            # Save immediately to keep file in sync
             try:
-                with open(self.history_file, "a") as f:
+                with open(self.history_file, "a", encoding="utf-8") as f:
                     f.write(question + "\n")
-                print(f"Question added: {question}")
             except Exception as e:
-                print(f"Error saving question: {str(e)}")
-        else:
-            print("Cannot add empty question.")
+                print(f"Error writing to file: {e}")
 
     def get_history(self):
-        """
-        Retrieves and displays the history of questions asked.
-        Always reloads from file to ensure latest data.
-        """
-        # Reload from file to ensure we have the most current data
+        """Return the latest in-memory list of questions."""
+        # Reload to ensure we pick up any external changes
         self.load_history()
-        
-        if not self.history:
-            print("No questions in history.")
-            return []
-        
-        print("\n=== Question History ===")
-        for i, question in enumerate(self.history, 1):
-            print(f"{i}. {question}")
         return self.history
-    
-    def clear_history(self):
-        """
-        Clears the history of questions asked.
-        """
-        confirm = input("Are you sure you want to clear all history? (y/n): ")
-        if confirm.lower() == 'y':
-            self.history = []
-            with open(self.history_file, "w") as f:
-                f.write("")
-            print("History cleared successfully.")
-        else:
-            print("Clear operation cancelled.")
-        
-    def save_history(self):
-        """
-        Saves the history to a file.
-        """
-        with open(self.history_file, "w") as f:
-            for question in self.history:
-                f.write(question + "\n")
-        print(f"History saved to {self.history_file}")
-                
-    def load_history(self):
-        """
-        Loads the history from a file.
-        """
-        try:
-            with open(self.history_file, "r") as f:
-                self.history = [line.strip() for line in f.readlines() if line.strip()]
-            if self.history:
-                print(f"Loaded {len(self.history)} questions from history.")
-        except FileNotFoundError:
-            self.history = []
-            print(f"No history file found. A new one will be created at {self.history_file}")
 
-    def search_history(self, keyword):
-        """
-        Searches for questions containing a keyword.
-        """
-        # Reload to ensure we have latest data
-        self.load_history()
-        
-        results = [q for q in self.history if keyword.lower() in q.lower()]
-        if results:
-            print(f"\n=== Search results for '{keyword}' ===")
-            for i, question in enumerate(results, 1):
-                print(f"{i}. {question}")
-        else:
-            print(f"No questions found containing '{keyword}'")
-        return results
+    def clear_history(self):
+        """Clear the entire history and empty the file."""
+        self.history = []
+        try:
+            with open(self.history_file, "w", encoding="utf-8") as f:
+                f.write("")
+        except Exception as e:
+            print(f"Error clearing file: {e}")
+
+    def load_history(self):
+        """Load questions from the file into memory."""
+        if not os.path.exists(self.history_file):
+            self.history = []
+            return
+
+        try:
+            with open(self.history_file, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+            self.history = [line.strip() for line in lines if line.strip()]
+        except Exception as e:
+            print(f"Error loading file: {e}")
+            self.history = []
