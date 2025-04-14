@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from langchain_openai import ChatOpenAI
-from browser_use import Agent
+from browser_use1 import Agent
 
 def main():
     st.title("Browser Use + Streamlit Demo")
