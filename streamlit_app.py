@@ -8,7 +8,7 @@ st.title("💊 Compendium Bot")
 st.write("This is a simple Streamlit app that demonstrates the use of a slider and a button.")
 
 question = st.text_input("Was möchtest du wissen?", placeholder="z. B. Wirkung von Dafalgan, Dosierung etc.")
-history_questions = history_questions.HistoryQuestions()
+history_questions = history_questions.HistoryQuestions(question)
 # option setting for if user want to see history of questions asked
 
 show_history = st.checkbox("Show history of questions asked", value=False)
