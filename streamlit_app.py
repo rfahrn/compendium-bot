@@ -34,14 +34,27 @@ st.markdown("""
         margin-top: 2rem;
         margin-bottom: 1rem;
     }
+    /* Light mode styles */
     .stTextInput > div > div > input {
         background-color: #f0f2f6;
+        color: #31333F;
+    }
+    /* Dark mode adjustments */
+    [data-testid="stAppViewContainer"] .stTextInput > div > div > input {
+        color: black !important;
+    }
+    [data-testid="stMarkdownContainer"] {
+        color: inherit;
     }
     .result-box {
         background-color: #f8f9fa;
         padding: 1.5rem;
         border-radius: 0.5rem;
         margin-top: 1rem;
+    }
+    /* Dark mode result box */
+    [data-theme="dark"] .result-box {
+        background-color: #262730;
     }
 </style>
 """, unsafe_allow_html=True)
