@@ -110,6 +110,9 @@ async def run_agent_with_logstream(task, log_callback):
 
     # Use the existing log file path
     log_path = "logs/conversation/last_run.txt"
+    # Delete old log file if it exists
+    if os.path.exists(log_path):
+        os.remove(log_path)
 
     # Delete old log file if it exists
     if os.path.exists(log_path):
@@ -125,9 +128,7 @@ async def run_agent_with_logstream(task, log_callback):
 
     # Start the agent in the background
     agent_task = asyncio.create_task(agent.run())
-
-    # Stream the log file as it's being written
-    last_position = 0
+    last_log = ""
     while not agent_task.done():
         if os.path.exists(log_path):
              with open(log_path, "r") as f:
@@ -155,7 +156,7 @@ if run_button:
 
                 def update_logs(new_log):
                     st.session_state["log_text"] += new_log
-                    log_area.code(st.session_state["log_text"])
+                    log_area.code(st.session_state["log_text"], language="text")
 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
