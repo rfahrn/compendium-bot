@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 import subprocess
 import time
 import glob
+os.makedirs("logs/conversation", exist_ok=True)
 
 def get_latest_log_file(log_dir="logs/conversation"):
     list_of_files = glob.glob(os.path.join(log_dir, "*"))
