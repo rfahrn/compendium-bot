@@ -92,10 +92,10 @@ with tab2:
         for i, q in enumerate(history, start=1):
             st.markdown(f"**{i}.** {q}")
     else:
-        st.info("Es givt noch keinen Frageverlauf.")
+        st.info("Es gibt noch keinen Frageverlauf.")
     
     # Red clear history button
-    if st.button("🗑️ Leere den Fageverlauf", type="secondary", key="clear_history"):
+    if st.button("🗑️ Leere den Frageverlauf", type="secondary", key="clear_history"):
         history_service.clear_history()
         st.success("Wir haben den Fageverlauf geleert!")
 
