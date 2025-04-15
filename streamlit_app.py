@@ -121,7 +121,7 @@ async def run_agent(task):
 if run_button:
     with tab1:
         if "question" in st.session_state and st.session_state.question:
-            with st.spinner("🔍 Suche wirde gestartet..."):
+            with st.spinner("🔍 Suche wurde gestartet..."):
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 result_history = loop.run_until_complete(run_agent(st.session_state.question))
@@ -131,7 +131,7 @@ if run_button:
             st.markdown('<div class="subheader">🔍 Such Resultate</div>', unsafe_allow_html=True)
             
             st.markdown('<div class="result-box">', unsafe_allow_html=True)
-            st.markdown("### 📋 Agent Ouput")
+            st.markdown("### 📋 Agent Output")
             st.write(result_history.final_result())
             st.markdown("</div>", unsafe_allow_html=True)
             
