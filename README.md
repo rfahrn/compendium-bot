@@ -1,6 +1,6 @@
-# 💊 Compendium Bot via: https://compendium-bot.streamlit.app/ 
+# Compendium.ch Chatbot
 
-Ein interaktiver Browser-Agent, der automatisiert Informationen über Medikamente von der Website [compendium.ch](https://compendium.ch/) abruft. Stelle Fragen wie "Was ist die Wirkung von Dafalgan?" und erhalte direkt Antworten durch intelligente Browser-Navigation und ein Large Language Model (LLM).
+Ein interaktiver Browser-Agent, der automatisiert Informationen über Medikamente von der Website [compendium.ch](https://compendium.ch/) abruft. Stelle Fragen wie "Was ist die Wirkung von Dafalgan?" und erhalte direkt Antworten durch intelligente Browser-Navigation und ein Large Language Model (LLM) erreichbar via: https://compendium-bot.streamlit.app/
 
 ![image](https://github.com/user-attachments/assets/4ff19e74-f1da-4bbf-a9e1-14ea13e04053)
 
