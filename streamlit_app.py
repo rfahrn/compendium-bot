@@ -60,7 +60,7 @@ async def run_agent(task):
     initial_actions = [{'open_tab': {'url': 'https://compendium.ch/'}}]
 
     # Use OpenAI key from st.secrets or .env
-    openai_key = st.secrets["openai"]["open_ai_key"] if "openai" in st.secrets else os.getenv("OPENAI_API_KEY")
+    openai_key = st.secrets["openai"]["open_ai_key"]
     llm = ChatOpenAI(model="gpt-4o", openai_api_key=openai_key)
 
     agent = Agent(
