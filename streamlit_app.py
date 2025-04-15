@@ -8,15 +8,48 @@ from browser_use.browser.context import BrowserContextConfig
 from langchain_openai import ChatOpenAI
 import subprocess
 
-# Install Playwright if needed
-#os.system("playwright install --force")
-
 # Load environment variables
 load_dotenv()
 
-# Initialize Streamlit page
-st.set_page_config(page_title="💊 Compendium Bot", layout="centered")
-st.title("💊 Compendium Bot")
+# Initialize Streamlit page with custom theme
+st.set_page_config(
+    page_title="💊 Compendium Bot", 
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
+# Add some custom CSS
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 2.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .subheader {
+        font-size: 1.5rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+    .stTextInput > div > div > input {
+        background-color: #f0f2f6;
+    }
+    .result-box {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Header with nice styling
+st.markdown('<div class="main-header">💊 Compendium Bot</div>', unsafe_allow_html=True)
+
+# Description with better formatting
+st.markdown("""
+This bot can search the Swiss Compendium for medicine information.
+Ask a question about any medication to get started.
+""")
 
 # Setup the browser
 config = BrowserConfig(headless=True)
@@ -25,13 +58,21 @@ browser = Browser(config=config)
 # Initialize HistoryQuestions service
 history_service = HistoryQuestions()
 
-st.write("This is a simple Streamlit app that demonstrates storing a question history.")
+# Create two columns for main layout
+col1, col2 = st.columns([3, 1])
 
-# Text input for the question
-question = st.text_input(
-    "Was möchtest du wissen?",
-    placeholder="z. B. Wirkung von Dafalgan, Dosierung etc."
-)
+with col1:
+    # Text input for the question with improved styling
+    question = st.text_input(
+        "Was möchtest du wissen?",
+        placeholder="z. B. Wirkung von Dafalgan, Dosierung etc."
+    )
+
+with col2:
+    # Add some spacing to align the button with the input field
+    st.markdown("<br>", unsafe_allow_html=True)
+    # Green run button
+    run_button = st.button("🚀 Run Browser Agent", type="primary", key="run_agent")
 
 # Store question in session and add to history
 if question:
@@ -39,21 +80,24 @@ if question:
     st.write(f"Du hast gefragt: *{question}*")
     st.session_state.question = question
 
-# Show history toggle
-show_history = st.checkbox("Show history of questions asked", value=False)
-if show_history:
-    st.subheader("History of questions asked")
+# Create tabs for history and results
+tab1, tab2 = st.tabs(["Results", "History"])
+
+with tab2:
+    st.markdown('<div class="subheader">📜 History of questions asked</div>', unsafe_allow_html=True)
+    
+    # Display history in a nicer format
     history = history_service.get_history()
     if history:
         for i, q in enumerate(history, start=1):
-            st.write(f"{i}. {q}")
+            st.markdown(f"**{i}.** {q}")
     else:
-        st.write("No history available.")
-
-# Clear history button
-if st.button("Clear history of questions asked"):
-    history_service.clear_history()
-    st.success("History cleared.")
+        st.info("No history available yet.")
+    
+    # Red clear history button
+    if st.button("🗑️ Clear history", type="secondary", key="clear_history"):
+        history_service.clear_history()
+        st.success("History cleared successfully!")
 
 # Async function to run browser agent
 async def run_agent(task):
@@ -73,25 +117,33 @@ async def run_agent(task):
     history = await agent.run()
     return history
 
-# Run the Browser Agent directly
-if st.button("Run Browser Agent"):
-    if "question" in st.session_state and st.session_state.question:
-        with st.spinner("Running agent..."):
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            result_history = loop.run_until_complete(run_agent(st.session_state.question))
-            loop.close()
+# Run the Browser Agent when button is clicked
+if run_button:
+    with tab1:
+        if "question" in st.session_state and st.session_state.question:
+            with st.spinner("🔍 Searching for information..."):
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result_history = loop.run_until_complete(run_agent(st.session_state.question))
+                loop.close()
 
-        st.write("**Agent Final Output**:")
-        st.write(result_history.final_result())
-
-        st.write("**URLs Visited**:")
-        st.write(result_history.urls())
-
-        st.write("**Action Names**:")
-        st.write(result_history.action_names())
-
-        st.write("**Any Errors?**:")
-        st.write(result_history.errors())
-    else:
-        st.warning("No question available to pass to the browser agent.")
+            # Display results in a nice container
+            st.markdown('<div class="subheader">🔍 Search Results</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="result-box">', unsafe_allow_html=True)
+            st.markdown("### 📋 Agent Final Output")
+            st.write(result_history.final_result())
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            with st.expander("📊 Details"):
+                st.write("**URLs Visited:**")
+                st.write(result_history.urls())
+                
+                st.write("**Actions Performed:**")
+                st.write(result_history.action_names())
+                
+                if result_history.errors():
+                    st.error("**Errors Encountered:**")
+                    st.write(result_history.errors())
+        else:
+            st.warning("⚠️ Please enter a question first.")
