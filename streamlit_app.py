@@ -9,7 +9,14 @@ from browser_use.browser.context import BrowserContextConfig
 from langchain_openai import ChatOpenAI
 import subprocess
 import time
+import glob
 
+def get_latest_log_file(log_dir="logs/conversation"):
+    list_of_files = glob.glob(os.path.join(log_dir, "*"))
+    if not list_of_files:
+        return None
+    latest_file = max(list_of_files, key=os.path.getctime)
+    return latest_file
 # Load environment variables
 load_dotenv()
 
@@ -104,20 +111,12 @@ with tab2:
 # Async function to run browser agent
 async def run_agent_with_logstream(task, log_callback):
     initial_actions = [{'open_tab': {'url': 'https://compendium.ch/'}}]
-
     openai_key = st.secrets["openai"]["open_ai_key"]
     llm = ChatOpenAI(model="gpt-4o", openai_api_key=openai_key)
 
-    # Use the existing log file path
-    log_path = "logs/conversation/conversation.txt"
-
-    # Clean previous run
-    if os.path.exists(log_path):
-        os.remove(log_path)
-
-    # Delete old log file if it exists
-    if os.path.exists(log_path):
-        os.remove(log_path)
+    # Clear directory if needed
+    for f in os.listdir("logs/conversation"):
+        os.remove(os.path.join("logs/conversation", f))
 
     agent = Agent(
         task=task,
@@ -127,8 +126,13 @@ async def run_agent_with_logstream(task, log_callback):
         save_conversation_path="logs/conversation"
     )
 
-    # Start the agent in the background
     agent_task = asyncio.create_task(agent.run())
+
+    log_path = None
+    while not log_path:
+        log_path = get_latest_log_file("logs/conversation")
+        await asyncio.sleep(0.5)
+
     last_log = ""
     while not agent_task.done():
         if os.path.exists(log_path):
@@ -138,8 +142,6 @@ async def run_agent_with_logstream(task, log_callback):
                     new_logs = content[len(last_log):]
                     last_log = content
                     log_callback(new_logs)
-        else:
-            log_callback("📄 Waiting for agent to start writing logs...\n")
         await asyncio.sleep(0.5)
 
     history = await agent_task
