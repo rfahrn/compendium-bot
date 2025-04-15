@@ -109,8 +109,9 @@ async def run_agent_with_logstream(task, log_callback):
     llm = ChatOpenAI(model="gpt-4o", openai_api_key=openai_key)
 
     # Use the existing log file path
-    log_path = "logs/conversation/last_run.txt"
-    # Delete old log file if it exists
+    log_path = "logs/conversation/conversation.txt"
+
+    # Clean previous run
     if os.path.exists(log_path):
         os.remove(log_path)
 
@@ -131,13 +132,15 @@ async def run_agent_with_logstream(task, log_callback):
     last_log = ""
     while not agent_task.done():
         if os.path.exists(log_path):
-             with open(log_path, "r") as f:
+            with open(log_path, "r", encoding="utf-8") as f:
                 content = f.read()
                 if content != last_log:
                     new_logs = content[len(last_log):]
                     last_log = content
                     log_callback(new_logs)
-        await asyncio.sleep(0.5)  # Check for updates every 0.5 seconds
+        else:
+            log_callback("📄 Waiting for agent to start writing logs...\n")
+        await asyncio.sleep(0.5)
 
     history = await agent_task
     return history
