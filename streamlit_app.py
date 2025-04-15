@@ -47,8 +47,8 @@ st.markdown('<div class="main-header">💊 Compendium Bot</div>', unsafe_allow_h
 
 # Description with better formatting
 st.markdown("""
-This bot can search the Swiss Compendium for medicine information.
-Ask a question about any medication to get started.
+Dieser Bot kann im Compendium nach Medikamenteninformationen suchen.
+Stelle eine Frage zu einem Medikament, um zu beginnen.
 """)
 
 # Setup the browser
@@ -72,7 +72,7 @@ with col2:
     # Add some spacing to align the button with the input field
     st.markdown("<br>", unsafe_allow_html=True)
     # Green run button
-    run_button = st.button("🚀 Run Browser Agent", type="primary", key="run_agent")
+    run_button = st.button("🚀 Browser Agent starten", type="primary", key="run_agent")
 
 # Store question in session and add to history
 if question:
@@ -81,10 +81,10 @@ if question:
     st.session_state.question = question
 
 # Create tabs for history and results
-tab1, tab2 = st.tabs(["Results", "History"])
+tab1, tab2 = st.tabs(["Resultate", "Fagenverlauf (History)"])
 
 with tab2:
-    st.markdown('<div class="subheader">📜 History of questions asked</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subheader">📜 Vergangene Fragen</div>', unsafe_allow_html=True)
     
     # Display history in a nicer format
     history = history_service.get_history()
@@ -92,12 +92,12 @@ with tab2:
         for i, q in enumerate(history, start=1):
             st.markdown(f"**{i}.** {q}")
     else:
-        st.info("No history available yet.")
+        st.info("Es givt noch keinen Frageverlauf.")
     
     # Red clear history button
-    if st.button("🗑️ Clear history", type="secondary", key="clear_history"):
+    if st.button("🗑️ Leere den Fageverlauf", type="secondary", key="clear_history"):
         history_service.clear_history()
-        st.success("History cleared successfully!")
+        st.success("Wir haben den Fageverlauf geleert!")
 
 # Async function to run browser agent
 async def run_agent(task):
@@ -121,29 +121,29 @@ async def run_agent(task):
 if run_button:
     with tab1:
         if "question" in st.session_state and st.session_state.question:
-            with st.spinner("🔍 Searching for information..."):
+            with st.spinner("🔍 Suche wirde gestartet..."):
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 result_history = loop.run_until_complete(run_agent(st.session_state.question))
                 loop.close()
 
             # Display results in a nice container
-            st.markdown('<div class="subheader">🔍 Search Results</div>', unsafe_allow_html=True)
+            st.markdown('<div class="subheader">🔍 Such Resultate</div>', unsafe_allow_html=True)
             
             st.markdown('<div class="result-box">', unsafe_allow_html=True)
-            st.markdown("### 📋 Agent Final Output")
+            st.markdown("### 📋 Agent Ouput")
             st.write(result_history.final_result())
             st.markdown("</div>", unsafe_allow_html=True)
             
             with st.expander("📊 Details"):
-                st.write("**URLs Visited:**")
+                st.write("**URLs die besucht wurden:**")
                 st.write(result_history.urls())
                 
-                st.write("**Actions Performed:**")
+                st.write("**Actionen welche ausgeführt wurden:**")
                 st.write(result_history.action_names())
                 
                 if result_history.errors():
-                    st.error("**Errors Encountered:**")
+                    st.error("**Errors die wir bekamen:**")
                     st.write(result_history.errors())
         else:
-            st.warning("⚠️ Please enter a question first.")
+            st.warning("⚠️ Bitte zuerst eine Frage stellen.")
