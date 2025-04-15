@@ -138,8 +138,8 @@ async def run_agent_with_logstream(task, log_callback):
                     log_callback(new_content)
         await asyncio.sleep(0.5)  # Check for updates every 0.5 seconds
 
-    await agent_task
-    return agent.history
+    history = await agent_task
+    return history
 
 # Run the Browser Agent when button is clicked
 if run_button:
