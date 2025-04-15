@@ -6,10 +6,9 @@ from history_questions import HistoryQuestions
 from browser_use import BrowserConfig, Agent, Browser
 from browser_use.browser.context import BrowserContextConfig
 from langchain_openai import ChatOpenAI
-import subprocess
 
-# install playwright install --with-deps
-subprocess.run(["playwright", "install", "--with-deps"])
+import subprocess
+subprocess.run(["playwright", "install", "--with-deps"], check=True)
 # Load environment variables
 load_dotenv()
 
