@@ -130,12 +130,12 @@ async def run_agent_with_logstream(task, log_callback):
     last_position = 0
     while not agent_task.done():
         if os.path.exists(log_path):
-            async with aiofiles.open(log_path, 'r') as f:
-                await f.seek(last_position)
-                new_content = await f.read()
-                last_position = await f.tell()
-                if new_content.strip():
-                    log_callback(new_content)
+             with open(log_path, "r") as f:
+                content = f.read()
+                if content != last_log:
+                    new_logs = content[len(last_log):]
+                    last_log = content
+                    log_callback(new_logs)
         await asyncio.sleep(0.5)  # Check for updates every 0.5 seconds
 
     history = await agent_task
