@@ -1,12 +1,21 @@
 import streamlit as st
 import asyncio
 from dotenv import load_dotenv
+from browser_use import BrowserConfig
 import os
+from langchain_openai import ChatOpenAI
+from browser_use import Agent, Browser
+from browser_use.browser.context import BrowserContextConfig
+
 os.system('playwright install --force')
 load_dotenv()
 
-from langchain_openai import ChatOpenAI
-from browser_use import Agent
+config = BrowserConfig(
+    headless=True, 
+)
+
+browser = Browser(config=config)
+
 
 def main():
     st.title("Browser Use + Streamlit Demo")
@@ -23,7 +32,8 @@ def main():
             agent = Agent(
                 task=task,
                 initial_actions=inital_actions,
-                llm=llm,)
+                llm=llm,
+                browser = browser)
 
 
             history = await agent.run()
