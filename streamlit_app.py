@@ -121,7 +121,7 @@ async def run_agent(task):
 if run_button:
     with tab1:
         if "question" in st.session_state and st.session_state.question:
-            with st.spinner("🔍 Suche wurde gestartet..."):
+            with st.spinner("🔍 Suche läuft..."):
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 result_history = loop.run_until_complete(run_agent(st.session_state.question))
