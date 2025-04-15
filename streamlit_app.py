@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import aiofiles
 import asyncio
 from dotenv import load_dotenv
 from history_questions import HistoryQuestions
@@ -8,16 +7,7 @@ from browser_use import BrowserConfig, Agent, Browser
 from browser_use.browser.context import BrowserContextConfig
 from langchain_openai import ChatOpenAI
 import subprocess
-import time
-import glob
-os.makedirs("logs/conversation", exist_ok=True)
 
-def get_latest_log_file(log_dir="logs/conversation"):
-    list_of_files = glob.glob(os.path.join(log_dir, "*"))
-    if not list_of_files:
-        return None
-    latest_file = max(list_of_files, key=os.path.getctime)
-    return latest_file
 # Load environment variables
 load_dotenv()
 
@@ -110,74 +100,41 @@ with tab2:
         st.success("Wir haben den Fageverlauf geleert!")
 
 # Async function to run browser agent
-async def run_agent_with_logstream(task, log_callback):
+async def run_agent(task):
     initial_actions = [{'open_tab': {'url': 'https://compendium.ch/'}}]
+
+    # Use OpenAI key from st.secrets or .env
     openai_key = st.secrets["openai"]["open_ai_key"]
     llm = ChatOpenAI(model="gpt-4o", openai_api_key=openai_key)
-
-    # Clear directory if needed
-    for f in os.listdir("logs/conversation"):
-        os.remove(os.path.join("logs/conversation", f))
 
     agent = Agent(
         task=task,
         initial_actions=initial_actions,
         llm=llm,
-        browser=browser,
-        save_conversation_path="logs/conversation"
+        browser=browser
     )
 
-    agent_task = asyncio.create_task(agent.run())
-
-    log_path = None
-    while not log_path:
-        log_path = get_latest_log_file("logs/conversation")
-        await asyncio.sleep(0.5)
-
-    last_log = ""
-    while not agent_task.done():
-        if os.path.exists(log_path):
-            with open(log_path, "r", encoding="utf-8") as f:
-                content = f.read()
-                if content != last_log:
-                    new_logs = content[len(last_log):]
-                    last_log = content
-                    log_callback(new_logs)
-        await asyncio.sleep(0.5)
-
-    history = await agent_task
+    history = await agent.run()
     return history
 
 # Run the Browser Agent when button is clicked
 if run_button:
     with tab1:
         if "question" in st.session_state and st.session_state.question:
-            log_area = st.empty()
-
-            # Ensure session state var exists
-            if "log_text" not in st.session_state:
-                st.session_state["log_text"] = ""
-
             with st.spinner("🔍 Suche läuft..."):
-
-                def update_logs(new_log):
-                    st.session_state["log_text"] += new_log
-                    log_area.code(st.session_state["log_text"], language="text")
-
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                result_history = loop.run_until_complete(
-                    run_agent_with_logstream(st.session_state.question, update_logs)
-                )
+                result_history = loop.run_until_complete(run_agent(st.session_state.question))
                 loop.close()
 
+            # Display results in a nice container
             st.markdown('<div class="subheader">🔍 Such Resultate</div>', unsafe_allow_html=True)
             
             st.markdown('<div class="result-box">', unsafe_allow_html=True)
             st.markdown("### 📋 Agent Output")
             st.write(result_history.final_result())
             st.markdown("</div>", unsafe_allow_html=True)
-
+            
             with st.expander("📊 Details"):
                 st.write("**URLs die besucht wurden:**")
                 st.write(result_history.urls())
