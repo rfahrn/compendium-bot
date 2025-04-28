@@ -58,6 +58,7 @@ agent = initialize_agent(
     llm=llm,
     agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
     verbose=True,
+    handle_parsing_errors=True,  
     agent_kwargs={
         "system_message": (
             "Du bist ein klinischer Assistent. "
