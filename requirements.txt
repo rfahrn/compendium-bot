@@ -83,7 +83,7 @@ Werkzeug==3.1.3
 zstandard==0.23.0
 aiofiles==24.1.0
 
-
+PyMuPDF
 ace_tools==0.0
 ace_tools_open==0.1.0
 aiohappyeyeballs==2.6.1
