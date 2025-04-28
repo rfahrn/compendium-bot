@@ -10,11 +10,11 @@ from langchain.agents import initialize_agent, AgentType
 from langchain.tools import Tool
 
 # Import your custom tools
-from Tools_agent.compendium import get_compendium_info
-from Tools_agent.faiss import search_faiss
-from Tools_agent.openfda import search_openfda
-from Tools_agent.tavily_live_rag import smart_tavily_answer
-from Tools_agent.search_medication_alerts import search_medication_alerts
+from Tools_agent.compendium_tool import get_compendium_info
+from Tools_agent.faiss_tool import search_faiss
+from Tools_agent.openfda_tool import search_openfda
+from Tools_agent.tavily_tool import smart_tavily_answer
+from Tools_agent.alerts_tool import search_medication_alerts
 
 # --- Setup environment
 load_dotenv()
