@@ -3,24 +3,22 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-import asyncio
 
 from langchain.chat_models import ChatOpenAI
 from langchain.agents import initialize_agent, AgentType
 from langchain.tools import Tool
 
-# Import your custom tools
+# Import your tools
 from Tools_agent.compendium_tool import get_compendium_info
 from Tools_agent.faiss_tool import search_faiss
 from Tools_agent.openfda_tool import search_openfda
-import streamlit as st
 from Tools_agent.tavily_tool import smart_tavily_answer
 from Tools_agent.alerts_tool import search_medication_alerts
 
-# --- Setup environment
+# === Load environment
 load_dotenv()
 
-# --- Setup Streamlit Page
+# === Streamlit Page Setup
 st.set_page_config(page_title="💊 Medizinischer Assistent", layout="centered")
 
 st.markdown("""
@@ -28,36 +26,33 @@ st.markdown("""
     .main-header { font-size: 2.5rem; margin-bottom: 1.5rem; }
     .subheader { font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; }
     .result-box { background-color: #f0f2f6; padding: 1.5rem; border-radius: 0.5rem; margin-top: 1rem; }
+    .thought-box { background-color: #e8f0fe; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Streamlit Header
+# === Header
 st.markdown('<div class="main-header">💊 Medizinischer Assistent</div>', unsafe_allow_html=True)
+st.write("Dieser Assistent kann medizinische Informationen aus Compendium.ch, OpenFDA, lokalen Dokumenten (FAISS) und dem Web sammeln.")
 
-st.write("""
-Dieser Assistent kann medizinische Informationen aus Compendium.ch, OpenFDA, lokalen Dokumenten (FAISS) und dem Web sammeln.
-""")
-
-# --- Define tools
+# === Setup Tools
 tools = [
     Tool(name="CompendiumTool", func=get_compendium_info, description="Hole offizielle Medikamenteninfos von Compendium.ch"),
     Tool(name="FAISSRetrieverTool", func=search_faiss, description="Durchsuche lokale medizinische FAISS-Datenbank"),
     Tool(name="OpenFDATool", func=search_openfda, description="Hole vollständige Informationen aus OpenFDA-Datenbank"),
     Tool(name="TavilySearchTool", func=smart_tavily_answer, description="Suche im Web nach aktuellen Infos oder News"),
-    Tool(name="MedicationAlertsTool", func=search_medication_alerts, description="Suche aktuelle Warnungen oder Sicherheitshinweise")
+    Tool(name="MedicationAlertsTool", func=search_medication_alerts, description="Suche aktuelle Warnungen oder Sicherheitshinweise"),
 ]
 
-# --- Setup LLM
+# === Setup LLM
 open_ai_key = st.secrets["openai"]["OPENAI_KEY"]
 llm = ChatOpenAI(
-    
     model="gpt-4o",
     temperature=0.2,
     streaming=True,
     openai_api_key=open_ai_key,
 )
 
-# --- Setup Agent
+# === Setup Agent
 agent = initialize_agent(
     tools=tools,
     llm=llm,
@@ -70,11 +65,13 @@ agent = initialize_agent(
             "Lies die vollständigen Antworten der Tools. "
             "Extrahiere nur die relevanten Infos für die gestellte Frage. "
             "Antworte klar, präzise und auf Deutsch."
-        )
+        ),
+        "return_intermediate_steps": True,
+        "max_iterations": 4,
     }
 )
 
-# --- Define question types
+# === Frage-Typen und Optionen
 question_types = {
     "💊 Wirkung": "Was ist die Wirkung von",
     "🩺 Nebenwirkungen": "Welche Nebenwirkungen hat",
@@ -95,7 +92,7 @@ input_type_options = {
     "💊 Medikament": "Medikament"
 }
 
-# --- UI Inputs
+# === Streamlit Inputs
 st.markdown('<div class="subheader">🔎 Frage stellen</div>', unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
@@ -109,7 +106,7 @@ medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placehol
 
 run_button = st.button("🚀 Anfrage starten")
 
-# --- Main logic
+# === Main Logic
 if run_button and medication_name:
     query_prefix = question_types[question_type]
     input_type_str = input_type_options[input_type]
@@ -118,14 +115,30 @@ if run_button and medication_name:
     st.markdown('<div class="subheader">🧠 Frage-Formulierung</div>', unsafe_allow_html=True)
     st.write(f"**🧠 Frage:** {full_prompt}")
 
-    with st.spinner('🔎 Der Assistent sucht Informationen...'):
+    with st.spinner('🔎 Suche läuft...'):
         try:
-            response = agent.run(full_prompt)
+            result = agent(full_prompt)
+            final_answer = result["output"]
+            intermediate_steps = result.get("intermediate_steps", [])
         except Exception as e:
-            response = f"❌ Fehler beim Ausführen: {e}"
+            st.error(f"❌ Fehler beim Ausführen des Assistenten: {e}")
+            final_answer = None
+            intermediate_steps = None
 
-    st.markdown('<div class="subheader">📋 Antwort</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="result-box">{response}</div>', unsafe_allow_html=True)
+    # === Show Thinking Steps
+    if intermediate_steps:
+        st.markdown('<div class="subheader">🧠 Agent Schritte</div>', unsafe_allow_html=True)
+        for idx, step in enumerate(intermediate_steps):
+            st.markdown(f'<div class="thought-box">', unsafe_allow_html=True)
+            st.markdown(f"**🧠 Gedanke {idx+1}:** {step[0].log}")
+            st.markdown(f"**🔧 Aktion:** {step[1].tool}")
+            st.markdown(f"**📥 Eingabe:** {step[1].tool_input}")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    # === Show Final Answer
+    if final_answer:
+        st.markdown('<div class="subheader">📋 Endgültige Antwort</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="result-box">{final_answer}</div>', unsafe_allow_html=True)
 
 elif run_button:
     st.warning("⚠️ Bitte gib den Namen eines Medikaments oder Wirkstoffs ein.")
