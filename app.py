@@ -12,7 +12,8 @@ from Tools_agent.faiss_tool import search_faiss
 from Tools_agent.openfda_tool import search_openfda
 from Tools_agent.tavily_tool import smart_tavily_answer
 from Tools_agent.alerts_tool import search_medication_alerts
-
+from langchain.callbacks import StreamlitCallbackHandler
+st_callback = StreamlitCallbackHandler(st.container())
 # --- Load environment
 load_dotenv()
 
@@ -113,7 +114,11 @@ if run_button and medication_name:
 
     with st.status("🔍 Agent denkt...", expanded=True) as status:
         try:
-            result = agent.invoke({"input": full_prompt})
+            result = agent.run(
+                input=full_prompt,
+                callbacks=[st_callback],
+                return_only_outputs=False,
+                return_intermediate_steps=True,)
             final_answer = result["output"]
             intermediate_steps = result.get("intermediate_steps", [])
             
