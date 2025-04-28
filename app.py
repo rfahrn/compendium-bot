@@ -110,13 +110,7 @@ with col2:
 
 medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placeholder="z.B. Dafalgan, Anthim, etc.")
 run_button = st.button("🚀 Anfrage starten")# --- Setup agent_executor properly
-agent_executor = AgentExecutor.from_agent_and_tools(
-    agent=agent,
-    tools=tools,
-    verbose=True,
-    return_intermediate_steps=True,
-    handle_parsing_errors=True,
-)
+
 
 st_callback = StreamlitCallbackHandler(parent_container=st.container())
 
@@ -131,7 +125,7 @@ if run_button and medication_name:
 
     with st.status("🔍 Agent denkt...", expanded=True) as status:
         try:
-            result = agent_executor.invoke(
+            result = agent.invoke(
                 {"input": full_prompt},
                 callbacks=[st_callback]
             )
