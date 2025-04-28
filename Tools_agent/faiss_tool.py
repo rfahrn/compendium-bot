@@ -18,11 +18,12 @@ import numpy as np
 from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import fitz  # PyMuPDF for PDFs
+import PyMuPDF  # PyMuPDF for PDFs
+import streamlit as st
 
 FAISS_FOLDER = "data/faiss_index"
-
-embedding_model = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_KEY"))
+openai_api_key = st.secrets["openai"]["OPENAI_KEY"]
+embedding_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
 def load_faiss_index():
     try:
@@ -40,7 +41,7 @@ def search_faiss(query):
 
 def upload_pdf_to_faiss(uploaded_file):
     """Extract text from PDF, split, embed, store FAISS"""
-    doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+    doc = PyMuPDF.fitz.open(stream=uploaded_file.read(), filetype="pdf")
     text = "\n".join(page.get_text() for page in doc)
 
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)

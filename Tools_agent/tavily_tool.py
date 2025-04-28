@@ -2,8 +2,9 @@
 
 from tavily import TavilyClient
 import os
-
-client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+import streamlit as st
+tavily_api_key = st.secrets["tavily"]["TAVILY_API_KEY"]
+client = TavilyClient(api_key=tavily_api_key)
 
 def smart_tavily_answer(query):
     """Use Tavily to fetch and summarize web results."""
