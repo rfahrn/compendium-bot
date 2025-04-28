@@ -103,7 +103,7 @@ def search_openfda_api(query, limit=3):
         "search": f'indications_and_usage:"{query}"',
         "limit": limit
     }
-    api_key = st.secrets["openfda"]["OPENFDA_API_KEY "]
+    api_key = st.secrets["openfda"]["OPENFDA_API_KEY"]
     if api_key:
         params["api_key"] = api_key
 
