@@ -1,12 +1,15 @@
 # app.py
+
 import os
 import streamlit as st
 from dotenv import load_dotenv
+
+# LangChain Core
 from langchain.chat_models import ChatOpenAI
-from langchain.agents import initialize_agent, AgentType
-from langchain.agents import AgentExecutor
-from langchain.agents import AgentOutputParser
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import Tool
+from langchain.callbacks import StreamlitCallbackHandler
 
 # Import your tools
 from Tools_agent.compendium_tool import get_compendium_info
@@ -14,19 +17,17 @@ from Tools_agent.faiss_tool import search_faiss
 from Tools_agent.openfda_tool import search_openfda
 from Tools_agent.tavily_tool import smart_tavily_answer
 from Tools_agent.alerts_tool import search_medication_alerts
-from langchain.callbacks import StreamlitCallbackHandler
+
 # --- Load environment
 load_dotenv()
 
 # --- Streamlit Setup
 st.set_page_config(page_title="💊 Medizinischer Assistent", layout="centered")
-
 st.markdown("""
 <style>
     .main-header { font-size: 2.5rem; margin-bottom: 1.5rem; }
     .subheader { font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; }
     .result-box { background-color: #f0f2f6; padding: 1.5rem; border-radius: 0.5rem; margin-top: 1rem; }
-    .thought-box { background-color: #e8f0fe; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -34,39 +35,45 @@ st.markdown("""
 st.markdown('<div class="main-header">💊 Medizinischer Assistent</div>', unsafe_allow_html=True)
 st.write("Dieser Assistent nutzt Compendium.ch, OpenFDA, lokale FAISS-Datenbanken und Websuche für medizinische Informationen.")
 
-# --- Setup Tools
+# --- Define Tools
 tools = [
-    Tool(name="CompendiumTool", func=get_compendium_info, description="Hole offizielle Medikamenteninfos von Compendium.ch"),
-    Tool(name="FAISSRetrieverTool", func=search_faiss, description="Durchsuche lokale medizinische FAISS-Datenbank"),
-    Tool(name="OpenFDATool", func=search_openfda, description="Hole vollständige Informationen aus OpenFDA-Datenbank"),
-    Tool(name="TavilySearchTool", func=smart_tavily_answer, description="Suche aktuelle Infos im Web"),
+    Tool(name="CompendiumTool", func=get_compendium_info, description="Hole Medikamenteninformationen von Compendium.ch"),
+    Tool(name="FAISSRetrieverTool", func=search_faiss, description="Durchsuche lokale FAISS-Datenbank"),
+    Tool(name="OpenFDATool", func=search_openfda, description="Hole vollständige Daten von OpenFDA"),
+    Tool(name="TavilySearchTool", func=smart_tavily_answer, description="Suche aktuelle Webinformationen"),
     Tool(name="MedicationAlertsTool", func=search_medication_alerts, description="Suche Medikamentenwarnungen"),
 ]
 
-# --- Setup LLM and Agent
-openai_key = st.secrets["openai"]["OPENAI_KEY"]
+# --- LLM
 llm = ChatOpenAI(
     model="gpt-4o",
     temperature=0.2,
     streaming=True,
-    openai_api_key=openai_key,
+    openai_api_key=st.secrets["openai"]["OPENAI_KEY"],
 )
 
-agent = initialize_agent(
-    tools=tools,
+# --- Prompt for the agent
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "Du bist ein klinischer medizinischer Assistent. Du darfst Tools verwenden. Antworte auf Deutsch, klar und präzise."),
+    ("user", "{input}"),
+    MessagesPlaceholder(variable_name="agent_scratchpad")
+])
+
+# --- Create Agent
+agent = create_react_agent(
     llm=llm,
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    tools=tools,
+    prompt=prompt
+)
+
+# --- Create Executor
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
     verbose=True,
+    return_intermediate_steps=True,
     handle_parsing_errors=True,
-    agent_kwargs={
-        "system_message": (
-            "Du bist ein klinischer Assistent. "
-            "Du darfst Tools verwenden. "
-            "Lies sorgfältig Antworten. "
-            "Fokussiere auf relevante Informationen. "
-            "Antworte auf Deutsch und präzise."
-        )
-    }
+    max_iterations=5,
 )
 
 # --- Frage Typen
@@ -90,7 +97,7 @@ input_type_options = {
     "💊 Medikament": "Medikament"
 }
 
-# --- UI Form
+# --- User Inputs
 st.markdown('<div class="subheader">🔎 Anfrage stellen</div>', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 
@@ -100,18 +107,10 @@ with col2:
     input_type = st.selectbox("Art der Eingabe:", list(input_type_options.keys()))
 
 medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placeholder="z.B. Dafalgan, Anthim, etc.")
-run_button = st.button("🚀 Anfrage starten")# --- Setup agent_executor properly
-agent_executor = AgentExecutor.from_agent_and_tools(
-    agent=agent,
-    tools=tools,
-    verbose=True,
-    return_intermediate_steps=True,
-    handle_parsing_errors=True,
-)
 
-st_callback = StreamlitCallbackHandler(parent_container=st.container())
+run_button = st.button("🚀 Anfrage starten")
 
-# --- On run_button click
+# --- Run when Button Clicked
 if run_button and medication_name:
     query_prefix = question_types[question_type]
     input_type_str = input_type_options[input_type]
@@ -120,29 +119,33 @@ if run_button and medication_name:
     st.markdown('<div class="subheader">🧠 Frage-Formulierung</div>', unsafe_allow_html=True)
     st.info(f"**🧠 Frage:** {full_prompt}")
 
+    st_callback = StreamlitCallbackHandler(st.container())
+
     with st.status("🔍 Agent denkt...", expanded=True) as status:
         try:
             result = agent_executor.invoke(
                 {"input": full_prompt},
                 callbacks=[st_callback]
             )
-            final_answer = result["output"]
+            final_answer = result.get("output")
             intermediate_steps = result.get("intermediate_steps", [])
-            
-            for idx, step in enumerate(intermediate_steps):
-                with st.chat_message("assistant"):
-                    st.markdown(f"🧠 **Gedanke {idx+1}:** {step[0].log}")
-                    st.markdown(f"🔧 **Aktion:** {step[1].tool}")
-                    st.markdown(f"📥 **Eingabe:** {step[1].tool_input}")
+
+            # Show thoughts
+            if intermediate_steps:
+                for idx, step in enumerate(intermediate_steps):
+                    with st.chat_message("assistant"):
+                        st.markdown(f"🧠 **Gedanke {idx+1}:** {step[0].log}")
+                        st.markdown(f"🔧 **Aktion:** {step[1].tool}")
+                        st.markdown(f"📥 **Eingabe:** {step[1].tool_input}")
 
             status.update(label="✅ Denken abgeschlossen", state="complete")
-        
+
         except Exception as e:
             st.error(f"❌ Fehler: {e}")
             status.update(label="❌ Fehler aufgetreten", state="error")
             final_answer = None
 
-    # --- Show final answer
+    # Final Result
     if final_answer:
         st.markdown('<div class="subheader">📋 Endgültige Antwort</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="result-box">{final_answer}</div>', unsafe_allow_html=True)
