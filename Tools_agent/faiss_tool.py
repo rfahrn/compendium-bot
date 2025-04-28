@@ -7,7 +7,6 @@ import numpy as np
 from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import PyMuPDF  as fitz # PyMuPDF for PDFs
 
 # Tools_agent/faiss_tool.py
 
@@ -18,7 +17,7 @@ import numpy as np
 from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import fitz  # PyMuPDF for PDFs
+import fitz  
 import streamlit as st
 
 FAISS_FOLDER = "data/faiss_index"
