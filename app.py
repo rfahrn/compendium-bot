@@ -3,11 +3,8 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-
-# LangChain Core
 from langchain.chat_models import ChatOpenAI
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.agents import initialize_agent, AgentType
 from langchain.tools import Tool
 from langchain.callbacks import StreamlitCallbackHandler
 
@@ -44,7 +41,7 @@ tools = [
     Tool(name="MedicationAlertsTool", func=search_medication_alerts, description="Suche Medikamentenwarnungen"),
 ]
 
-# --- LLM
+# --- Setup LLM
 llm = ChatOpenAI(
     model="gpt-4o",
     temperature=0.2,
@@ -52,28 +49,23 @@ llm = ChatOpenAI(
     openai_api_key=st.secrets["openai"]["OPENAI_KEY"],
 )
 
-# --- Prompt for the agent
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "Du bist ein klinischer medizinischer Assistent. Du darfst Tools verwenden. Antworte auf Deutsch, klar und präzise."),
-    ("user", "{input}"),
-    MessagesPlaceholder(variable_name="agent_scratchpad")
-])
-
-# --- Create Agent
-agent = create_react_agent(
+# --- Setup Agent
+agent = initialize_agent(
+    tools=tools,
     llm=llm,
-    tools=tools,
-    prompt=prompt
-)
-
-# --- Create Executor
-agent_executor = AgentExecutor(
-    agent=agent,
-    tools=tools,
+    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
     verbose=True,
-    return_intermediate_steps=True,
     handle_parsing_errors=True,
-    max_iterations=5,
+    agent_kwargs={
+        "system_message": (
+            "Du bist ein klinischer Assistent. "
+            "Du darfst Tools verwenden. "
+            "Lies sorgfältig Antworten. "
+            "Fokussiere auf relevante Informationen. "
+            "Antworte auf Deutsch und präzise."
+        ),
+        "return_intermediate_steps": True,
+    }
 )
 
 # --- Frage Typen
@@ -110,6 +102,9 @@ medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placehol
 
 run_button = st.button("🚀 Anfrage starten")
 
+# --- StreamlitCallbackHandler
+st_callback = StreamlitCallbackHandler(st.container())
+
 # --- Run when Button Clicked
 if run_button and medication_name:
     query_prefix = question_types[question_type]
@@ -119,33 +114,15 @@ if run_button and medication_name:
     st.markdown('<div class="subheader">🧠 Frage-Formulierung</div>', unsafe_allow_html=True)
     st.info(f"**🧠 Frage:** {full_prompt}")
 
-    st_callback = StreamlitCallbackHandler(st.container())
-
-    with st.status("🔍 Agent denkt...", expanded=True) as status:
+    with st.spinner("🔎 Agent denkt..."):
         try:
-            result = agent_executor.invoke(
-                {"input": full_prompt},
-                callbacks=[st_callback]
-            )
-            final_answer = result.get("output")
-            intermediate_steps = result.get("intermediate_steps", [])
-
-            # Show thoughts
-            if intermediate_steps:
-                for idx, step in enumerate(intermediate_steps):
-                    with st.chat_message("assistant"):
-                        st.markdown(f"🧠 **Gedanke {idx+1}:** {step[0].log}")
-                        st.markdown(f"🔧 **Aktion:** {step[1].tool}")
-                        st.markdown(f"📥 **Eingabe:** {step[1].tool_input}")
-
-            status.update(label="✅ Denken abgeschlossen", state="complete")
-
+            result = agent.invoke({"input": full_prompt}, callbacks=[st_callback])
+            final_answer = result["output"]
         except Exception as e:
             st.error(f"❌ Fehler: {e}")
-            status.update(label="❌ Fehler aufgetreten", state="error")
             final_answer = None
 
-    # Final Result
+    # --- Final Output
     if final_answer:
         st.markdown('<div class="subheader">📋 Endgültige Antwort</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="result-box">{final_answer}</div>', unsafe_allow_html=True)
