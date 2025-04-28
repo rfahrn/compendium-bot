@@ -11,7 +11,7 @@ tavily-python>=0.7.0
 playwright>=1.51.0
 requests>=2.32.3
 beautifulsoup4>=4.13.4
-PyMuPDF>=1.25.0
+pymupdf
 sentence-transformers>=4.1.0
 faiss-cpu>=1.10.0
 
