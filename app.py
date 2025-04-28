@@ -118,7 +118,7 @@ if run_button and medication_name:
 
     with st.spinner('🔎 Suche läuft...'):
         try:
-            result = agent(full_prompt)
+            result = agent.invoke({"input": full_prompt})   # <<<<<<--- CORRECT CALL
             final_answer = result["output"]
             intermediate_steps = result.get("intermediate_steps", [])
         except Exception as e:
@@ -127,14 +127,17 @@ if run_button and medication_name:
             intermediate_steps = None
 
     # === Show Thinking Steps
-    if intermediate_steps:
-        st.markdown('<div class="subheader">🧠 Agent Schritte</div>', unsafe_allow_html=True)
-        for idx, step in enumerate(intermediate_steps):
-            st.markdown(f'<div class="thought-box">', unsafe_allow_html=True)
-            st.markdown(f"**🧠 Gedanke {idx+1}:** {step[0].log}")
-            st.markdown(f"**🔧 Aktion:** {step[1].tool}")
-            st.markdown(f"**📥 Eingabe:** {step[1].tool_input}")
-            st.markdown('</div>', unsafe_allow_html=True)
+    for idx, step in enumerate(intermediate_steps):
+        thought = step[0].log
+        action = step[1].tool
+        action_input = step[1].tool_input
+        st.markdown(f'''
+        <div class="thought-box">
+            <b>🧠 Gedanke {idx+1}:</b> {thought}<br>
+            <b>🔧 Aktion:</b> {action}<br>
+            <b>📥 Eingabe:</b> {action_input}
+        </div>
+        ''', unsafe_allow_html=True)
 
     # === Show Final Answer
     if final_answer:
