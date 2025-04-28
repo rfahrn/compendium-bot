@@ -113,7 +113,7 @@ if run_button and medication_name:
 
     with st.status("🔍 Agent denkt...", expanded=True) as status:
         try:
-            result = agent.invoke({"input": full_prompt}, callbacks=[st_callback])
+            result = agent.invoke({"input": full_prompt}, callbacks=[st_callback], return_only_outputs=False)
             final_answer = result["output"]
             intermediate_steps = result.get("intermediate_steps", [])
             
