@@ -2,6 +2,7 @@ streamlit_app.py
 hello.py
 history_questions.py
 __pycache__/
+
 *.streamlit
 faiss_index/*.pkl
 faiss_index/*.faiss
