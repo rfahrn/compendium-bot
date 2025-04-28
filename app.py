@@ -13,6 +13,7 @@ from langchain.tools import Tool
 from Tools_agent.compendium_tool import get_compendium_info
 from Tools_agent.faiss_tool import search_faiss
 from Tools_agent.openfda_tool import search_openfda
+import streamlit as st
 from Tools_agent.tavily_tool import smart_tavily_answer
 from Tools_agent.alerts_tool import search_medication_alerts
 
@@ -47,11 +48,13 @@ tools = [
 ]
 
 # --- Setup LLM
+open_ai_key = st.secrets["openai"]["OPENAI_KEY"]
 llm = ChatOpenAI(
+    
     model="gpt-4o",
     temperature=0.2,
     streaming=True,
-    openai_api_key=os.getenv("OPENAI_KEY"),
+    openai_api_key=open_ai_key,
 )
 
 # --- Setup Agent
