@@ -13,6 +13,7 @@ from Tools_agent.compendium_tool import get_compendium_info
 from Tools_agent.faiss_tool import search_faiss
 from Tools_agent.openfda_tool import search_openfda
 from Tools_agent.tavily_tool import smart_tavily_answer
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from Tools_agent.alerts_tool import search_medication_alerts
 
 # --- Load environment variables ---
@@ -39,6 +40,11 @@ tools = [
     Tool(name="TavilySearchTool", func=smart_tavily_answer, description="Suche aktuelle Webinformationen"),
     Tool(name="MedicationAlertsTool", func=search_medication_alerts, description="Suche Medikamentenwarnungen"),
 ]
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "Du bist ein klinischer medizinischer Assistent. Du darfst Tools verwenden. Lies sorgfältig Antworten und fokussiere auf relevante Informationen. Antworte auf Deutsch und präzise."),
+    ("user", "{input}"),
+    MessagesPlaceholder(variable_name="agent_scratchpad"),
+])
 
 # --- Setup LLM ---
 llm = ChatOpenAI(
@@ -51,7 +57,8 @@ llm = ChatOpenAI(
 # --- Create Agent correctly ---
 agent = create_react_agent(
     llm=llm,
-    tools=tools
+    tools=tools,
+    prompt=prompt,
 )
 
 # --- Create AgentExecutor ---
