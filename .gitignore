@@ -5,3 +5,6 @@ __pycache__/
 *.streamlit
 faiss_index/*.pkl
 faiss_index/*.faiss
+texts/*.txt
+logs/*
+faiss_index/
