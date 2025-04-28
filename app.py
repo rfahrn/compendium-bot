@@ -4,6 +4,8 @@ import streamlit as st
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
 from langchain.agents import initialize_agent, AgentType
+from langchain.agents import AgentExecutor
+from langchain.agents import AgentOutputParser
 from langchain.tools import Tool
 
 # Import your tools
@@ -63,9 +65,7 @@ agent = initialize_agent(
             "Lies sorgfältig Antworten. "
             "Fokussiere auf relevante Informationen. "
             "Antworte auf Deutsch und präzise."
-        ),
-        "return_intermediate_steps": True,
-        "max_iterations": 5,
+        )
     }
 )
 
@@ -100,9 +100,18 @@ with col2:
     input_type = st.selectbox("Art der Eingabe:", list(input_type_options.keys()))
 
 medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placeholder="z.B. Dafalgan, Anthim, etc.")
-run_button = st.button("🚀 Anfrage starten")
-st_callback = StreamlitCallbackHandler(st.container())
-# --- Execution
+run_button = st.button("🚀 Anfrage starten")# --- Setup agent_executor properly
+agent_executor = AgentExecutor.from_agent_and_tools(
+    agent=agent,
+    tools=tools,
+    verbose=True,
+    return_intermediate_steps=True,
+    handle_parsing_errors=True,
+)
+
+st_callback = StreamlitCallbackHandler(parent_container=st.container())
+
+# --- On run_button click
 if run_button and medication_name:
     query_prefix = question_types[question_type]
     input_type_str = input_type_options[input_type]
@@ -113,7 +122,10 @@ if run_button and medication_name:
 
     with st.status("🔍 Agent denkt...", expanded=True) as status:
         try:
-            result = agent.invoke({"input": full_prompt}, callbacks=[st_callback], return_only_outputs=False)
+            result = agent_executor.invoke(
+                {"input": full_prompt},
+                callbacks=[st_callback]
+            )
             final_answer = result["output"]
             intermediate_steps = result.get("intermediate_steps", [])
             
@@ -130,7 +142,7 @@ if run_button and medication_name:
             status.update(label="❌ Fehler aufgetreten", state="error")
             final_answer = None
 
-    # === Final Antwort
+    # --- Show final answer
     if final_answer:
         st.markdown('<div class="subheader">📋 Endgültige Antwort</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="result-box">{final_answer}</div>', unsafe_allow_html=True)
