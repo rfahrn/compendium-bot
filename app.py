@@ -111,18 +111,33 @@ with col2:
 medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placeholder="z.B. Dafalgan, Anthim, etc.")
 run_button = st.button("🚀 Anfrage starten")
 # --- Async -> Sync Wrapper
-# --- Async Generator (unchanged)
+# --- Async Generator
 async def agent_async_gen(full_prompt):
+    agent_scratchpad = []
+
     async for chunk in agent_executor.astream({
         "input": full_prompt,
-        "agent_scratchpad": []
+        "agent_scratchpad": agent_scratchpad,
     }):
         if "actions" in chunk:
             for action in chunk["actions"]:
+                msg = AIMessage(content="", additional_kwargs={
+                    "tool_calls": [
+                        {"function": {"name": action.tool, "arguments": str(action.tool_input)}, "type": "function"}
+                    ]
+                })
+                agent_scratchpad.append(msg)
                 yield f"🔧 **Aktion:** `{action.tool}` mit Eingabe `{action.tool_input}`\n\n"
+
         if "steps" in chunk:
             for step in chunk["steps"]:
+                obs_msg = ToolMessage(
+                    content=step.observation,
+                    name=step.action.tool
+                )
+                agent_scratchpad.append(obs_msg)
                 yield f"📋 **Beobachtung:** `{step.observation}`\n\n"
+
         if "output" in chunk:
             yield f"\n### 📋 Endgültige Antwort:\n{chunk['output']}"
 
@@ -136,7 +151,6 @@ if run_button and medication_name:
     st.info(f"**🧠 Frage:** {full_prompt}")
 
     with st.status("🔎 Assistent arbeitet...", expanded=True):
-        # ✅ KEY FIX: directly use async generator (Streamlit supports it!)
         st.write_stream(agent_async_gen(full_prompt))
 
 elif run_button:
