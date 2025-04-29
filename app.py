@@ -1,30 +1,25 @@
 # app.py
+
 import os
+import asyncio
 import streamlit as st
 from dotenv import load_dotenv
-from langchain.chat_models import ChatOpenAI
-from langchain.agents import initialize_agent, AgentType
-from langchain.agents import AgentExecutor
-from langchain.agents import AgentOutputParser
-from langchain.tools import Tool
 
-# Import your tools
+from langchain_community.chat_models import ChatOpenAI
+from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
+
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.tools import Tool
+
+# --- Import your tools
 from Tools_agent.compendium_tool import get_compendium_info
 from Tools_agent.faiss_tool import search_faiss
 from Tools_agent.openfda_tool import search_openfda
 from Tools_agent.tavily_tool import smart_tavily_answer
 from Tools_agent.alerts_tool import search_medication_alerts
-from langchain.callbacks import StreamlitCallbackHandler
-# --- Load environment
-from langchain.agents import AgentExecutor, create_structured_chat_agent
-from langchain.agents import AgentType, initialize_agent
-from langchain.agents.format_scratchpad import format_log_to_str
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.agents import AgentFinish
-from langchain_core.output_parsers import StrOutputParser
-from langchain.schema.runnable import RunnablePassthrough
-from langchain.agents import create_react_agent  # <== use this
 
+# --- Load environment
 load_dotenv()
 
 # --- Streamlit Setup
@@ -35,48 +30,64 @@ st.markdown("""
     .main-header { font-size: 2.5rem; margin-bottom: 1.5rem; }
     .subheader { font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; }
     .result-box { background-color: #f0f2f6; padding: 1.5rem; border-radius: 0.5rem; margin-top: 1rem; }
-    .thought-box { background-color: #e8f0fe; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Page Header
 st.markdown('<div class="main-header">💊 Medizinischer Assistent</div>', unsafe_allow_html=True)
 st.write("Dieser Assistent nutzt Compendium.ch, OpenFDA, lokale FAISS-Datenbanken und Websuche für medizinische Informationen.")
 
-# --- Setup Tools
+# --- Define Tools
 tools = [
-    Tool(name="CompendiumTool", func=get_compendium_info, description="Hole offizielle Medikamenteninfos von Compendium.ch"),
-    Tool(name="FAISSRetrieverTool", func=search_faiss, description="Durchsuche lokale medizinische FAISS-Datenbank"),
-    Tool(name="OpenFDATool", func=search_openfda, description="Hole vollständige Informationen aus OpenFDA-Datenbank"),
-    Tool(name="TavilySearchTool", func=smart_tavily_answer, description="Suche aktuelle Infos im Web"),
-    Tool(name="MedicationAlertsTool", func=search_medication_alerts, description="Suche Medikamentenwarnungen"),
+    Tool.from_function(
+        name="CompendiumTool",
+        description="Hole offizielle Medikamenteninfos von Compendium.ch",
+        func=get_compendium_info,
+    ),
+    Tool.from_function(
+        name="FAISSRetrieverTool",
+        description="Durchsuche lokale medizinische FAISS-Datenbank",
+        func=search_faiss,
+    ),
+    Tool.from_function(
+        name="OpenFDATool",
+        description="Hole vollständige Informationen aus OpenFDA-Datenbank",
+        func=search_openfda,
+    ),
+    Tool.from_function(
+        name="TavilySearchTool",
+        description="Suche aktuelle Infos im Web",
+        func=smart_tavily_answer,
+    ),
+    Tool.from_function(
+        name="MedicationAlertsTool",
+        description="Suche Medikamentenwarnungen",
+        func=search_medication_alerts,
+    ),
 ]
 
-# --- Setup LLM and Agent
-openai_key = st.secrets["openai"]["OPENAI_KEY"]
+# --- Setup LLM
 llm = ChatOpenAI(
     model="gpt-4o",
     temperature=0.2,
     streaming=True,
-    openai_api_key=openai_key,
+    openai_api_key=st.secrets["openai"]["OPENAI_KEY"],
 )
 
-agent = initialize_agent(
+# --- Define Prompt
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "Du bist ein klinischer Assistent. Du darfst Tools verwenden. Antworte klar auf Deutsch."),
+    ("user", "{input}"),
+    MessagesPlaceholder(variable_name="agent_scratchpad")
+])
+
+# --- Setup Agent
+agent = create_react_agent(llm, tools, prompt)
+
+agent_executor = AgentExecutor(
+    agent=agent,
     tools=tools,
-    llm=llm,
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
     verbose=True,
-    handle_parsing_errors=True,
-    agent_kwargs={
-        "system_message": (
-            "Du bist ein klinischer Assistent. "
-            "Du darfst Tools verwenden. "
-            "Lies sorgfältig Antworten. "
-            "Fokussiere auf relevante Informationen. "
-            "Antworte auf Deutsch und präzise."
-        )
-    }
-)
+).with_config({"run_name": "Agent"})
 
 # --- Frage Typen
 question_types = {
@@ -99,7 +110,7 @@ input_type_options = {
     "💊 Medikament": "Medikament"
 }
 
-# --- UI Form
+# --- UI Inputs
 st.markdown('<div class="subheader">🔎 Anfrage stellen</div>', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 
@@ -109,46 +120,36 @@ with col2:
     input_type = st.selectbox("Art der Eingabe:", list(input_type_options.keys()))
 
 medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placeholder="z.B. Dafalgan, Anthim, etc.")
-run_button = st.button("🚀 Anfrage starten")# --- Setup agent_executor properly
+run_button = st.button("🚀 Anfrage starten")
 
-
-st_callback = StreamlitCallbackHandler(parent_container=st.container())
-
-# --- On run_button click
+# --- Main Logic
 if run_button and medication_name:
+
     query_prefix = question_types[question_type]
     input_type_str = input_type_options[input_type]
-    full_prompt = f"{query_prefix} {medication_name}? ({input_type_str})"
+    reformulated_question = f"{query_prefix} {medication_name}? ({input_type_str})"
 
     st.markdown('<div class="subheader">🧠 Frage-Formulierung</div>', unsafe_allow_html=True)
-    st.info(f"**🧠 Frage:** {full_prompt}")
+    st.info(f"**🧠 Reformulierte Frage:** {reformulated_question}")
 
-    with st.status("🔍 Agent denkt...", expanded=True) as status:
-        try:
-            result = agent.invoke(
-                {"input": full_prompt},
-                callbacks=[st_callback]
-            )
-            final_answer = result["output"]
-            intermediate_steps = result.get("intermediate_steps", [])
-            
-            for idx, step in enumerate(intermediate_steps):
-                with st.chat_message("assistant"):
-                    st.markdown(f"🧠 **Gedanke {idx+1}:** {step[0].log}")
-                    st.markdown(f"🔧 **Aktion:** {step[1].tool}")
-                    st.markdown(f"📥 **Eingabe:** {step[1].tool_input}")
+    st.markdown('<div class="subheader">🧠 Agent denkt...</div>', unsafe_allow_html=True)
 
-            status.update(label="✅ Denken abgeschlossen", state="complete")
-        
-        except Exception as e:
-            st.error(f"❌ Fehler: {e}")
-            status.update(label="❌ Fehler aufgetreten", state="error")
-            final_answer = None
+    thought_placeholder = st.container()
+    final_answer_placeholder = st.empty()
 
-    # --- Show final answer
-    if final_answer:
-        st.markdown('<div class="subheader">📋 Endgültige Antwort</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="result-box">{final_answer}</div>', unsafe_allow_html=True)
+    async def stream_agent():
+        async for chunk in agent_executor.astream({"input": reformulated_question}):
+            if "actions" in chunk:
+                for action in chunk["actions"]:
+                    thought_placeholder.markdown(f"🔧 **Aktion:** `{action.tool}` mit Eingabe `{action.tool_input}`")
+            elif "steps" in chunk:
+                for step in chunk["steps"]:
+                    thought_placeholder.markdown(f"📥 **Beobachtung:** `{step.observation}`")
+            elif "output" in chunk:
+                final_answer_placeholder.success(f"📋 Antwort: {chunk['output']}")
+
+    asyncio.run(stream_agent())
 
 elif run_button:
     st.warning("⚠️ Bitte gib den Namen eines Medikaments oder Wirkstoffs ein.")
+
