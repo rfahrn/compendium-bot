@@ -58,7 +58,11 @@ llm = ChatOpenAI(
 
 # ✅ --- Correct Prompt ---
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "Du bist ein klinischer Assistent. Du darfst Tools verwenden. Antworten auf Deutsch. Tools: {tools}"),
+    ("system", 
+     "Du bist ein klinischer medizinischer Assistent. "
+     "Dir stehen folgende Tools zur Verfügung: {tools}. "
+     "Nutze diese Tool-Namen korrekt: {tool_names}. "
+     "Antworte klar und auf Deutsch."),
     ("user", "{input}"),
     MessagesPlaceholder(variable_name="agent_scratchpad")
 ])
