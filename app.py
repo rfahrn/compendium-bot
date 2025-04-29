@@ -1,24 +1,24 @@
 # app.py
 
 import os
-import asyncio
 import streamlit as st
+import asyncio
 from dotenv import load_dotenv
 
 from langchain_community.chat_models import ChatOpenAI
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 from langchain.agents import AgentExecutor, create_react_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import Tool
 
-# --- Import Tools
+# --- Import your tools
 from Tools_agent.compendium_tool import get_compendium_info
 from Tools_agent.faiss_tool import search_faiss
 from Tools_agent.openfda_tool import search_openfda
 from Tools_agent.tavily_tool import smart_tavily_answer
 from Tools_agent.alerts_tool import search_medication_alerts
 
-# --- Load Environment
+# --- Load environment
 load_dotenv()
 
 # --- Streamlit Setup
@@ -35,15 +35,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- Page Header
 st.markdown('<div class="main-header">💊 Medizinischer Assistent</div>', unsafe_allow_html=True)
 st.write("Dieser Assistent nutzt Compendium.ch, OpenFDA, lokale FAISS-Datenbanken und Websuche für medizinische Informationen.")
 
 # --- Define Tools
 tools = [
-    Tool.from_function(name="CompendiumTool", description="Hole offizielle Medikamenteninfos von Compendium.ch", func=get_compendium_info),
-    Tool.from_function(name="FAISSRetrieverTool", description="Durchsuche lokale medizinische FAISS-Datenbank", func=search_faiss),
-    Tool.from_function(name="OpenFDATool", description="Hole vollständige Informationen aus OpenFDA-Datenbank", func=search_openfda),
-    Tool.from_function(name="TavilySearchTool", description="Suche aktuelle Infos im Web", func=smart_tavily_answer),
+    Tool.from_function(name="CompendiumTool", description="Hole Medikamenteninformationen von Compendium.ch", func=get_compendium_info),
+    Tool.from_function(name="FAISSRetrieverTool", description="Durchsuche lokale FAISS-Datenbank", func=search_faiss),
+    Tool.from_function(name="OpenFDATool", description="Hole vollständige Daten von OpenFDA", func=search_openfda),
+    Tool.from_function(name="TavilySearchTool", description="Suche aktuelle Webinformationen", func=smart_tavily_answer),
     Tool.from_function(name="MedicationAlertsTool", description="Suche Medikamentenwarnungen", func=search_medication_alerts),
 ]
 
@@ -55,15 +56,15 @@ llm = ChatOpenAI(
     openai_api_key=st.secrets["openai"]["OPENAI_KEY"],
 )
 
-# --- Define Prompt
+# ✅ --- Correct Prompt ---
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "Du bist ein klinischer Assistent. Du darfst Tools verwenden. Antworte klar auf Deutsch."),
+    ("system", "Du bist ein klinischer Assistent. Du darfst Tools verwenden. Antworten auf Deutsch. Tools: {tools}"),
     ("user", "{input}"),
     MessagesPlaceholder(variable_name="agent_scratchpad")
 ])
 
-# --- Setup Agent
-agent = create_react_agent(llm, tools, prompt)
+# ✅ --- Setup Agent properly
+agent = create_react_agent(llm=llm, tools=tools, prompt=prompt)
 
 agent_executor = AgentExecutor(
     agent=agent,
