@@ -74,7 +74,8 @@ agent = create_react_agent(
 agent_executor = AgentExecutor(
     agent=agent,
     tools=tools,
-    verbose=True
+    verbose=True,
+    return_intermediate_steps=True
 )
 
 # --- Frage Typen
