@@ -7,19 +7,18 @@ from dotenv import load_dotenv
 
 from langchain_community.chat_models import ChatOpenAI
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
-
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import Tool
 
-# --- Import your tools
+# --- Import Tools
 from Tools_agent.compendium_tool import get_compendium_info
 from Tools_agent.faiss_tool import search_faiss
 from Tools_agent.openfda_tool import search_openfda
 from Tools_agent.tavily_tool import smart_tavily_answer
 from Tools_agent.alerts_tool import search_medication_alerts
 
-# --- Load environment
+# --- Load Environment
 load_dotenv()
 
 # --- Streamlit Setup
@@ -29,7 +28,10 @@ st.markdown("""
 <style>
     .main-header { font-size: 2.5rem; margin-bottom: 1.5rem; }
     .subheader { font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; }
-    .result-box { background-color: #f0f2f6; padding: 1.5rem; border-radius: 0.5rem; margin-top: 1rem; }
+    .result-box { background-color: #e0f7fa; padding: 1rem; border-radius: 10px; margin: 1rem 0; }
+    .action-box { background-color: #e3f2fd; padding: 1rem; border-radius: 10px; margin: 1rem 0; }
+    .observation-box { background-color: #fce4ec; padding: 1rem; border-radius: 10px; margin: 1rem 0; }
+    .final-box { background-color: #dcedc8; padding: 1rem; border-radius: 10px; margin: 1rem 0; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -38,31 +40,11 @@ st.write("Dieser Assistent nutzt Compendium.ch, OpenFDA, lokale FAISS-Datenbanke
 
 # --- Define Tools
 tools = [
-    Tool.from_function(
-        name="CompendiumTool",
-        description="Hole offizielle Medikamenteninfos von Compendium.ch",
-        func=get_compendium_info,
-    ),
-    Tool.from_function(
-        name="FAISSRetrieverTool",
-        description="Durchsuche lokale medizinische FAISS-Datenbank",
-        func=search_faiss,
-    ),
-    Tool.from_function(
-        name="OpenFDATool",
-        description="Hole vollständige Informationen aus OpenFDA-Datenbank",
-        func=search_openfda,
-    ),
-    Tool.from_function(
-        name="TavilySearchTool",
-        description="Suche aktuelle Infos im Web",
-        func=smart_tavily_answer,
-    ),
-    Tool.from_function(
-        name="MedicationAlertsTool",
-        description="Suche Medikamentenwarnungen",
-        func=search_medication_alerts,
-    ),
+    Tool.from_function(name="CompendiumTool", description="Hole offizielle Medikamenteninfos von Compendium.ch", func=get_compendium_info),
+    Tool.from_function(name="FAISSRetrieverTool", description="Durchsuche lokale medizinische FAISS-Datenbank", func=search_faiss),
+    Tool.from_function(name="OpenFDATool", description="Hole vollständige Informationen aus OpenFDA-Datenbank", func=search_openfda),
+    Tool.from_function(name="TavilySearchTool", description="Suche aktuelle Infos im Web", func=smart_tavily_answer),
+    Tool.from_function(name="MedicationAlertsTool", description="Suche Medikamentenwarnungen", func=search_medication_alerts),
 ]
 
 # --- Setup LLM
@@ -110,7 +92,7 @@ input_type_options = {
     "💊 Medikament": "Medikament"
 }
 
-# --- UI Inputs
+# --- UI
 st.markdown('<div class="subheader">🔎 Anfrage stellen</div>', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 
@@ -122,34 +104,29 @@ with col2:
 medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placeholder="z.B. Dafalgan, Anthim, etc.")
 run_button = st.button("🚀 Anfrage starten")
 
-# --- Main Logic
+# --- Run Logic
 if run_button and medication_name:
-
     query_prefix = question_types[question_type]
     input_type_str = input_type_options[input_type]
     reformulated_question = f"{query_prefix} {medication_name}? ({input_type_str})"
 
-    st.markdown('<div class="subheader">🧠 Frage-Formulierung</div>', unsafe_allow_html=True)
-    st.info(f"**🧠 Reformulierte Frage:** {reformulated_question}")
+    st.markdown('<div class="subheader">🧠 Reformulierte Frage</div>', unsafe_allow_html=True)
+    st.info(reformulated_question)
 
-    st.markdown('<div class="subheader">🧠 Agent denkt...</div>', unsafe_allow_html=True)
-
-    thought_placeholder = st.container()
-    final_answer_placeholder = st.empty()
+    st.markdown('<div class="subheader">🤖 Agent denkt...</div>', unsafe_allow_html=True)
 
     async def stream_agent():
         async for chunk in agent_executor.astream({"input": reformulated_question}):
             if "actions" in chunk:
                 for action in chunk["actions"]:
-                    thought_placeholder.markdown(f"🔧 **Aktion:** `{action.tool}` mit Eingabe `{action.tool_input}`")
+                    yield f'<div class="action-box">🔧 **Aktion:** `{action.tool}`<br>📥 **Eingabe:** `{action.tool_input}`</div>'
             elif "steps" in chunk:
                 for step in chunk["steps"]:
-                    thought_placeholder.markdown(f"📥 **Beobachtung:** `{step.observation}`")
+                    yield f'<div class="observation-box">📋 **Beobachtung:** {step.observation}</div>'
             elif "output" in chunk:
-                final_answer_placeholder.success(f"📋 Antwort: {chunk['output']}")
+                yield f'<div class="final-box">✅ **Antwort:** {chunk["output"]}</div>'
 
-    asyncio.run(stream_agent())
+    st.write_stream(stream_agent)
 
 elif run_button:
     st.warning("⚠️ Bitte gib den Namen eines Medikaments oder Wirkstoffs ein.")
-
