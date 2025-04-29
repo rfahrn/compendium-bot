@@ -18,10 +18,9 @@ from langchain.callbacks.streamlit import (
     StreamlitCallbackHandler,
 )
 import streamlit as st
-# --- Load environment
+
 load_dotenv()
 
-# --- Streamlit Setup
 st.set_page_config(page_title="💊 Medizinischer Assistent", layout="centered")
 
 st.markdown("""
@@ -33,11 +32,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Page Header
 st.markdown('<div class="main-header">💊 Medizinischer Assistent</div>', unsafe_allow_html=True)
 st.write("Dieser Assistent nutzt Compendium.ch, OpenFDA, lokale FAISS-Datenbanken und Websuche für medizinische Informationen.")
 
-# --- Setup Tools
 tools = [
     Tool(name="CompendiumTool", func=get_compendium_info, description="Hole offizielle Medikamenteninfos von Compendium.ch"),
     Tool(name="FAISSRetrieverTool", func=search_faiss, description="Durchsuche lokale medizinische FAISS-Datenbank"),
@@ -74,7 +71,6 @@ agent = initialize_agent(
     }
 )
 
-# --- Frage Typen
 question_types = {
     "💊 Wirkung": "Was ist die Wirkung von",
     "🩺 Nebenwirkungen": "Welche Nebenwirkungen hat",
@@ -95,7 +91,7 @@ input_type_options = {
     "💊 Medikament": "Medikament"
 }
 
-# --- UI Form
+
 st.markdown('<div class="subheader">🔎 Anfrage stellen</div>', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 
@@ -107,7 +103,7 @@ with col2:
 medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placeholder="z.B. Dafalgan, Anthim, etc.")
 run_button = st.button("🚀 Anfrage starten")
 st_callback = StreamlitCallbackHandler(st.container())
-# --- Execution
+
 if run_button and medication_name:
     query_prefix = question_types[question_type]
     input_type_str = input_type_options[input_type]
@@ -135,7 +131,6 @@ if run_button and medication_name:
             status.update(label="❌ Fehler aufgetreten", state="error")
             final_answer = None
 
-    # === Final Antwort
     if final_answer:
         st.markdown('<div class="subheader">📋 Endgültige Antwort</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="result-box">{final_answer}</div>', unsafe_allow_html=True)
