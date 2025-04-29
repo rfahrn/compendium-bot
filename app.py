@@ -110,6 +110,7 @@ with col2:
 medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placeholder="z.B. Dafalgan, Anthim, etc.")
 run_button = st.button("🚀 Anfrage starten")
 # --- Async -> Sync Wrapper
+# --- Async Generator (unchanged)
 async def agent_async_gen(full_prompt):
     async for chunk in agent_executor.astream({
         "input": full_prompt,
@@ -124,9 +125,6 @@ async def agent_async_gen(full_prompt):
         if "output" in chunk:
             yield f"\n### 📋 Endgültige Antwort:\n{chunk['output']}"
 
-def agent_sync_gen(full_prompt):
-    return asyncio.run(agent_async_gen(full_prompt))
-
 # --- Main logic
 if run_button and medication_name:
     query_prefix = question_types[question_type]
@@ -137,7 +135,8 @@ if run_button and medication_name:
     st.info(f"**🧠 Frage:** {full_prompt}")
 
     with st.status("🔎 Assistent arbeitet...", expanded=True):
-        st.write_stream(agent_sync_gen(full_prompt))
+        # ✅ KEY FIX: directly use async generator (Streamlit supports it!)
+        st.write_stream(agent_async_gen(full_prompt))
 
 elif run_button:
     st.warning("⚠️ Bitte gib den Namen eines Medikaments oder Wirkstoffs ein.")
