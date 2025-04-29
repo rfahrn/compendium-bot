@@ -4,6 +4,7 @@ import os
 import time
 import streamlit as st
 from dotenv import load_dotenv
+import asyncio
 
 # LangChain Imports
 from langchain_openai import ChatOpenAI
@@ -108,6 +109,23 @@ with col2:
 
 medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placeholder="z.B. Dafalgan, Anthim, etc.")
 run_button = st.button("🚀 Anfrage starten")
+# --- Async -> Sync Wrapper
+async def agent_async_gen(full_prompt):
+    async for chunk in agent_executor.astream({
+        "input": full_prompt,
+        "agent_scratchpad": []
+    }):
+        if "actions" in chunk:
+            for action in chunk["actions"]:
+                yield f"🔧 **Aktion:** `{action.tool}` mit Eingabe `{action.tool_input}`\n\n"
+        if "steps" in chunk:
+            for step in chunk["steps"]:
+                yield f"📋 **Beobachtung:** `{step.observation}`\n\n"
+        if "output" in chunk:
+            yield f"\n### 📋 Endgültige Antwort:\n{chunk['output']}"
+
+def agent_sync_gen(full_prompt):
+    return asyncio.run(agent_async_gen(full_prompt))
 
 # --- Main logic
 if run_button and medication_name:
@@ -118,24 +136,8 @@ if run_button and medication_name:
     st.markdown('<div class="subheader">🧠 Frage-Formulierung</div>', unsafe_allow_html=True)
     st.info(f"**🧠 Frage:** {full_prompt}")
 
-    # --- Streaming agent
     with st.status("🔎 Assistent arbeitet...", expanded=True):
-        def stream_agent():
-            async_stream = agent_executor.stream({
-                "input": full_prompt,
-                "agent_scratchpad": []  # must be provided
-            })
-            async for chunk in async_stream:
-                if "actions" in chunk:
-                    for action in chunk["actions"]:
-                        yield f"🔧 **Aktion:** `{action.tool}` mit Eingabe `{action.tool_input}`\n\n"
-                if "steps" in chunk:
-                    for step in chunk["steps"]:
-                        yield f"📋 **Beobachtung:** `{step.observation}`\n\n"
-                if "output" in chunk:
-                    yield f"\n### 📋 Endgültige Antwort:\n{chunk['output']}"
-
-        st.write_stream(stream_agent)
+        st.write_stream(agent_sync_gen(full_prompt))
 
 elif run_button:
     st.warning("⚠️ Bitte gib den Namen eines Medikaments oder Wirkstoffs ein.")
