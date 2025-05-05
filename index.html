@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Medizinischer Assistent</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: auto; }
+        h1 { font-size: 2em; }
+        .result-box, .step-box {
+            background-color: #f0f2f6;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.5rem;
+        }
+        .link { color: blue; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>💊 Medizinischer Assistent</h1>
+
+    <form id="queryForm">
+        <label>Fragetyp:</label>
+        <select name="question_type">
+            <option value="Was ist die Wirkung von">💊 Wirkung</option>
+            <option value="Welche Nebenwirkungen hat">🩺 Nebenwirkungen</option>
+            <!-- Add more -->
+        </select><br><br>
+
+        <label>Eingabe-Typ:</label>
+        <select name="input_type">
+            <option value="Medikament">💊 Medikament</option>
+            <option value="Wirkstoff">🧪 Wirkstoff</option>
+        </select><br><br>
+
+        <input type="text" name="medication_name" placeholder="z.B. Dafalgan" required><br><br>
+        <button type="submit">Anfrage starten 🚀</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        document.getElementById("queryForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+
+            const form = e.target;
+            const query = {
+                question_type: form.question_type.value,
+                input_type: form.input_type.value,
+                medication_name: form.medication_name.value
+            };
+
+            const res = await fetch("http://localhost:8000/query", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(query)
+            });
+
+            const data = await res.json();
+            const container = document.getElementById("result");
+            container.innerHTML = "";
+
+            if (data.error) {
+                container.innerHTML = `<p style="color:red;">❌ Fehler: ${data.error}</p>`;
+                return;
+            }
+
+            container.innerHTML += `<div class="result-box"><b>📋 Endgültige Antwort:</b><br>${data.final_answer}</div>`;
+
+            data.steps.forEach((step, idx) => {
+                let links = step.links.map(link => `<a class="link" href="${link}" target="_blank">${link}</a>`).join("<br>");
+                container.innerHTML += `
+                    <div class="step-box">
+                        <b>🧠 Gedanke ${idx + 1}:</b> ${step.thought}<br>
+                        <b>🔧 Tool:</b> ${step.tool}<br>
+                        <b>📥 Eingabe:</b> ${step.input}<br>
+                        <b>📤 Ausgabe:</b> ${step.output}<br>
+                        ${links ? `<b>🔗 Links:</b><br>${links}` : ""}
+                    </div>
+                `;
+            });
+        });
+    </script>
+</body>
+</html>

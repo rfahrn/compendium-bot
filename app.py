@@ -1,4 +1,4 @@
-# app.py
+# -*- coding: utf-8 -*-
 import os
 import streamlit as st
 from dotenv import load_dotenv
@@ -6,14 +6,11 @@ from langchain.chat_models import ChatOpenAI
 from langchain.agents import initialize_agent, AgentType
 from langchain.agents import AgentExecutor
 from langchain.tools import Tool
-
-# Import your tools
 from Tools_agent.compendium_tool import get_compendium_info
 from Tools_agent.faiss_tool import search_faiss
 from Tools_agent.openfda_tool import search_openfda
 from Tools_agent.tavily_tool import smart_tavily_answer
 from Tools_agent.alerts_tool import search_medication_alerts
-#from langchain.callbacks import StreamlitCallbackHandler
 from langchain.callbacks.streamlit import (
     StreamlitCallbackHandler,
 )
@@ -43,7 +40,6 @@ tools = [
     Tool(name="MedicationAlertsTool", func=search_medication_alerts, description="Suche Medikamentenwarnungen"),
 ]
 
-# --- Setup LLM and Agent
 openai_key = st.secrets["openai"]["OPENAI_KEY"]
 llm = ChatOpenAI(
     model="gpt-4o",
