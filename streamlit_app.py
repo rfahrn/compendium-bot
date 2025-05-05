@@ -7,22 +7,15 @@ from browser_use import BrowserConfig, Agent, Browser
 from browser_use.browser.context import BrowserContextConfig
 from langchain_openai import ChatOpenAI
 
-#install playwright with dependencies 
 os.system("playwright install")
 os.system("playwright install-deps")
-
-
-# Load environment variables
 load_dotenv()
-
-# Initialize Streamlit page with custom theme
 st.set_page_config(
     page_title="💊 Compendium Bot", 
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Add some custom CSS
 st.markdown("""
 <style>
     .main-header {
