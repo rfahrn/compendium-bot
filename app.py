@@ -138,7 +138,7 @@ if run_button and medication_name:
         st.markdown(f'<div class="result-box">{final_answer}</div>', unsafe_allow_html=True)
         urls_in_answer = extract_urls(final_answer)
         for url in urls_in_answer:
-            st.markdown(f"🔗 **Gefundener Link in Antwort:** [{url}]({url})")
+            st.markdown(f"🔗 **Links:** [{url}]({url})")
             
     if intermediate_steps:
         st.markdown('<div class="subheader">🧰 Verwendete Tools & Schritte</div>', unsafe_allow_html=True)
