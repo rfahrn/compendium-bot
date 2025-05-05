@@ -10,14 +10,14 @@ from langchain_openai import ChatOpenAI
 # Load environment variables
 load_dotenv()
 
-# Streamlit page config
+# Streamlit config
 st.set_page_config(
     page_title="💊 Compendium Bot",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Styling
+# CSS styles
 st.markdown("""
 <style>
     .main-header { font-size: 2.5rem; margin-bottom: 1.5rem; }
@@ -28,28 +28,30 @@ st.markdown("""
         border-radius: 0.5rem;
         margin-top: 1rem;
     }
-    [data-theme="dark"] .result-box { background-color: #262730; }
+    [data-theme="dark"] .result-box {
+        background-color: #262730;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Title & description
+# Header
 st.markdown('<div class="main-header">💊 Compendium Bot</div>', unsafe_allow_html=True)
 st.markdown("Dieser Bot kann im Compendium nach Medikamenteninformationen suchen. Stelle eine Frage zu einem Medikament, um zu beginnen.")
 
-# Browser & history setup
+# Browser and history
 config = BrowserConfig(headless=True)
 browser = Browser(config=config)
 history_service = HistoryQuestions()
 
-# Input and button
+# Layout
 col1, col2 = st.columns([3, 1])
 with col1:
     question = st.text_input("Was möchtest du wissen?", placeholder="z. B. Wirkung von Dafalgan, Dosierung etc.")
 with col2:
     st.markdown("<br>", unsafe_allow_html=True)
-    run_button = st.button("🚀 Browser Agent starten")
+    run_button = st.button("🚀 Anfrage starten")
 
-# Store question in session
+# Save question
 if question:
     history_service.add_question(question)
     st.session_state.question = question
@@ -70,7 +72,7 @@ with tab2:
         history_service.clear_history()
         st.success("Fragenverlauf wurde geleert!")
 
-# Async agent runner
+# Async agent function
 async def run_agent(task):
     initial_actions = [{'open_tab': {'url': 'https://compendium.ch/'}}]
     openai_key = st.secrets["openai"]["open_ai_key"]
@@ -85,7 +87,7 @@ async def run_agent(task):
 
     return await agent.run()
 
-# Execution block
+# Agent run block
 if run_button:
     with tab1:
         if "question" in st.session_state:
@@ -96,62 +98,66 @@ if run_button:
                     result_history = loop.run_until_complete(run_agent(st.session_state.question))
                     loop.close()
                 except Exception as e:
-                    st.error(f"❌ Fehler beim Ausführen des Agents: {e}")
+                    st.error(f"❌ Fehler beim Agentenlauf: {e}")
                     result_history = None
 
             if result_history:
-                st.markdown('<div class="subheader">🔍 Such Resultate</div>', unsafe_allow_html=True)
+                # 📋 Final result
+                st.markdown('<div class="subheader">📋 Endgültige Antwort</div>', unsafe_allow_html=True)
                 st.markdown('<div class="result-box">', unsafe_allow_html=True)
-
                 try:
                     final_output = result_history.final_result()
                     if final_output:
-                        st.markdown("### 📋 Agent Output")
                         st.markdown(final_output if isinstance(final_output, str) else str(final_output))
                     else:
-                        st.warning("⚠️ Keine Resultate gefunden.")
+                        st.warning("⚠️ Keine finale Antwort erhalten.")
                 except Exception as e:
-                    st.error(f"Fehler beim Anzeigen der Resultate: {e}")
-
+                    st.error(f"Fehler beim Anzeigen der Antwort: {e}")
                 st.markdown('</div>', unsafe_allow_html=True)
 
-                with st.expander("📊 Details"):
-                    # URLs
-                    try:
-                        urls = result_history.urls()
-                        if urls:
-                            st.markdown("### 🔗 Besuchte URLs")
-                            for i, url in enumerate(urls, 1):
-                                st.markdown(f"[🔗 Link {i}]({url})", unsafe_allow_html=True)
-                        else:
-                            st.info("Keine URLs besucht.")
-                    except Exception:
-                        st.warning("Keine URL-Information verfügbar.")
+                # 📊 Details
+                st.markdown('<div class="subheader">📊 Details zum Agentenlauf</div>', unsafe_allow_html=True)
+                st.markdown('<div class="result-box">', unsafe_allow_html=True)
 
-                    # Actions
-                    try:
-                        actions = result_history.action_names()
-                        if actions:
-                            st.markdown("### ⚙️ Aktionen")
-                            for action in actions:
-                                st.markdown(f"- {action}")
-                        else:
-                            st.info("Keine Aktionen aufgezeichnet.")
-                    except Exception:
-                        st.warning("Keine Aktionsdaten verfügbar.")
+                # 🔗 URLs
+                st.markdown("### 🔗 Besuchte URLs")
+                try:
+                    urls = result_history.urls()
+                    if urls:
+                        for i, url in enumerate(urls, 1):
+                            st.markdown(f"[🔗 Link {i}]({url})", unsafe_allow_html=True)
+                    else:
+                        st.info("Keine URLs besucht.")
+                except Exception as e:
+                    st.error(f"Fehler beim Abrufen der URLs: {e}")
 
-                    # Errors
-                    try:
-                        errors = result_history.errors()
-                        if errors:
-                            st.markdown("### ❗ Fehler")
-                            for err in errors:
-                                st.error(err)
-                        else:
-                            st.success("Keine Fehler festgestellt.")
-                    except Exception:
-                        st.warning("Fehlerdaten konnten nicht geladen werden.")
+                # ⚙️ Aktionen
+                st.markdown("### ⚙️ Aktionen")
+                try:
+                    actions = result_history.action_names()
+                    if actions:
+                        for action in actions:
+                            st.markdown(f"- {action}")
+                    else:
+                        st.info("Keine Aktionen aufgezeichnet.")
+                except Exception as e:
+                    st.error(f"Fehler beim Abrufen der Aktionen: {e}")
+
+                # ❗ Fehler
+                st.markdown("### ❗ Fehler")
+                try:
+                    errors = result_history.errors()
+                    if errors:
+                        for err in errors:
+                            st.error(err)
+                    else:
+                        st.success("Keine Fehler festgestellt.")
+                except Exception as e:
+                    st.error(f"Fehler beim Abrufen der Fehlerdaten: {e}")
+
+                st.markdown('</div>', unsafe_allow_html=True)
             else:
-                st.warning("⚠️ Keine Antwort erhalten.")
+                st.warning("⚠️ Keine Antwort vom Agent erhalten.")
         else:
             st.warning("Bitte zuerst eine Frage stellen.")
+
