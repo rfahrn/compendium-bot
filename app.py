@@ -100,6 +100,12 @@ medication_name = st.text_input("Name des Medikaments oder Wirkstoffs", placehol
 run_button = st.button("🚀 Anfrage starten")
 st_callback = StreamlitCallbackHandler(st.container())
 
+import re
+# URL extractor
+def extract_urls(text):
+    url_pattern = r"(https?://\S+)"
+    return re.findall(url_pattern, text)
+
 if run_button and medication_name:
     query_prefix = question_types[question_type]
     input_type_str = input_type_options[input_type]
@@ -130,25 +136,28 @@ if run_button and medication_name:
     if final_answer:
         st.markdown('<div class="subheader">📋 Endgültige Antwort</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="result-box">{final_answer}</div>', unsafe_allow_html=True)
+        urls_in_answer = extract_urls(final_answer)
+        for url in urls_in_answer:
+            st.markdown(f"🔗 **Gefundener Link in Antwort:** [{url}]({url})")
+            
+    if intermediate_steps:
+        st.markdown('<div class="subheader">🧰 Verwendete Tools & Schritte</div>', unsafe_allow_html=True)
+        for idx, step in enumerate(intermediate_steps):
+            thought = step[0].log
+            tool = step[1].tool
+            tool_input = step[1].tool_input
+            tool_output = step[1].tool_response
 
-        if intermediate_steps:
-            st.markdown('<div class="subheader">🧰 Verwendete Tools & Schritte</div>', unsafe_allow_html=True)
-            for idx, step in enumerate(intermediate_steps):
-                thought = step[0].log
-                tool = step[1].tool
-                tool_input = step[1].tool_input
-                tool_output = step[1].tool_response
+            st.markdown(f'<div class="thought-box">🧠 <b>Gedanke {idx+1}</b>: {thought}<br>'
+                        f'🔧 <b>Tool</b>: {tool}<br>'
+                        f'📥 <b>Eingabe</b>: {tool_input}<br>'
+                        f'📤 <b>Antwort</b>: {tool_output}</div>', unsafe_allow_html=True)
 
-                st.markdown(f'<div class="thought-box">🧠 <b>Gedanke {idx+1}</b>: {thought}<br>'
-                            f'🔧 <b>Tool</b>: {tool}<br>'
-                            f'📥 <b>Eingabe</b>: {tool_input}<br>'
-                            f'📤 <b>Antwort</b>: {tool_output}</div>', unsafe_allow_html=True)
-
-                # Optional: extract and highlight URLs
-                if isinstance(tool_output, str) and "http" in tool_output:
-                    urls = [word for word in tool_output.split() if word.startswith("http")]
-                    for url in urls:
-                        st.markdown(f"🔗 **Gefundener Link:** [{url}]({url})")
+            # Optional: extract and highlight URLs
+            if isinstance(tool_output, str) and "http" in tool_output:
+                urls = [word for word in tool_output.split() if word.startswith("http")]
+                for url in urls:
+                    st.markdown(f"🔗 **Gefundener Link:** [{url}]({url})")
 
 elif run_button:
     st.warning("⚠️ Bitte gib den Namen eines Medikaments oder Wirkstoffs ein.")
