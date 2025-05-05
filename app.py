@@ -148,16 +148,16 @@ if run_button and medication_name:
             tool_input = step[1].tool_input
             tool_output = step[1].tool_response
 
-            st.markdown(f'<div class="thought-box">🧠 <b>Gedanke {idx+1}</b>: {thought}<br>'
-                        f'🔧 <b>Tool</b>: {tool}<br>'
-                        f'📥 <b>Eingabe</b>: {tool_input}<br>'
-                        f'📤 <b>Antwort</b>: {tool_output}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="thought-box">🧠 <b>Gedanke {idx+1}</b>: {thought}<br>'
+                    f'🔧 <b>Tool</b>: {tool}<br>'
+                    f'📥 <b>Eingabe</b>: {tool_input}<br>'
+                    f'📤 <b>Antwort</b>: {tool_output}</div>', unsafe_allow_html=True)
 
-            # Optional: extract and highlight URLs
-            if isinstance(tool_output, str) and "http" in tool_output:
-                urls = [word for word in tool_output.split() if word.startswith("http")]
-                for url in urls:
-                    st.markdown(f"🔗 **Gefundener Link:** [{url}]({url})")
+        # Optional: extract and highlight URLs
+        if isinstance(tool_output, str) and "http" in tool_output:
+            urls = [word for word in tool_output.split() if word.startswith("http")]
+            for url in urls:
+                st.markdown(f"🔗 **Gefundener Link:** [{url}]({url})")
 
 elif run_button:
     st.warning("⚠️ Bitte gib den Namen eines Medikaments oder Wirkstoffs ein.")
