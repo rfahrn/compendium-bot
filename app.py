@@ -18,7 +18,7 @@ import streamlit as st
 
 load_dotenv()
 
-st.set_page_config(page_title="💊 Medizinischer Assistent", layout="centered")
+st.set_page_config(page_title="KI Now Generator of Solutions (KINGS)", layout="centered")
 
 st.markdown("""
 <style>
